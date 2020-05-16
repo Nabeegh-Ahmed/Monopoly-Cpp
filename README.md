@@ -1,5 +1,4 @@
 # Monopoly-Cpp
 <ul>
-<li>Add .h files in "HeaderFiles" Folder</li>
-<li>Add .cpp files to "ResourceFiles" Folder</li>
+<li>Add Classes, .h and .cpp files in "Resources" Folder</li>
 </ul>
