@@ -37,7 +37,7 @@ public:
 		return dice;
 	}
 	int Roll() {
-		unsigned int faceNumber = rand() % 5 + 0;
+		unsigned int faceNumber = rand() % 6 + 0;
 		dice.setTexture(&faces[faceNumber]);
 		return faceNumber + 1;
 	}
