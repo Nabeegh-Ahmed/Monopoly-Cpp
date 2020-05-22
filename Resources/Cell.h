@@ -7,7 +7,6 @@
 class Cell {
 private:
 	int cellID;
-	static int incrementer;
 	sf::RectangleShape cellshape;
 	sf::Image cellimage;
 	sf::Texture cellgraphic;
@@ -25,6 +24,7 @@ public:
 
 Cell::Cell() {
 	std::string texturestring;
+	static int incrementer=1;
 	static float coordx = 1100;
 	static float coordy = 850;
 	static float amounttoshiftx = 0;
@@ -57,7 +57,7 @@ Cell::Cell() {
 		cellshape.setPosition(celltopleftcoordinates);
 		cellgraphic.loadFromImage(cellimage);
 		cellshape.setTexture(&cellgraphic);
-		this->cellID = incrementer;
+		cellID = incrementer;
 	}
 	else {
 		texturestring = "Textures/Inner_Board.png";
@@ -69,17 +69,17 @@ Cell::Cell() {
 		cellshape.setPosition(celltopleftcoordinates);
 		cellgraphic.loadFromImage(cellimage);
 		cellshape.setTexture(&cellgraphic);
-		this->cellID = incrementer;
+		cellID = incrementer;
 	}
 	incrementer++;
 }
 sf::Vector2f Cell::getcellcoordinates() {
-	return this->celltopleftcoordinates;
+	return celltopleftcoordinates;
 }
 void Cell::drawcell(sf::RenderWindow& window) {
 	window.draw(cellshape);
 }
 int Cell::getcellid() {
-	return this->cellID;
+	return cellID;
 }
 #endif
