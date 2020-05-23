@@ -1,6 +1,8 @@
 #ifndef Cell_HEADER
 #define Cell_HEADER
 #pragma once
+#pragma warning(push, 0) 
+
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <iostream>
@@ -16,6 +18,9 @@ public:
 	sf::Vector2f getcellcoordinates();
 	void drawcell(sf::RenderWindow& window);
 	int getcellid();
+	sf::RectangleShape getBlock() {
+		return cellshape;
+	}
 	~Cell() {
 
 	}
@@ -24,7 +29,7 @@ public:
 
 Cell::Cell() {
 	std::string texturestring;
-	static int incrementer=1;
+	static int incrementer = 1;
 	static float coordx = 1100;
 	static float coordy = 850;
 	static float amounttoshiftx = 0;
@@ -50,7 +55,7 @@ Cell::Cell() {
 	if (incrementer != 41) {
 		coordx += amounttoshiftx;
 		coordy += amounttoshifty;
-		texturestring = "Textures/Cell" + std::to_string(incrementer) + ".png";
+		texturestring = "assets/Textures/Cell" + std::to_string(incrementer) + ".png";
 		cellshape.setSize(sf::Vector2f(150.0f, 150.0f));
 		cellimage.loadFromFile(texturestring);
 		celltopleftcoordinates = sf::Vector2f(coordx, coordy);
@@ -60,7 +65,7 @@ Cell::Cell() {
 		cellID = incrementer;
 	}
 	else {
-		texturestring = "Textures/Inner_Board.png";
+		texturestring = "assets/Textures/Inner_Board.png";
 		coordx = -400;
 		coordy = -500;
 		cellshape.setSize(sf::Vector2f(1350.0f, 1350.0f));

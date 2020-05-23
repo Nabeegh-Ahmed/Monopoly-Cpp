@@ -44,8 +44,8 @@ public:
 	void Draw(sf::RenderWindow& window) {
 		window.draw(dice);
 	}
-	void setposition(float x,float y) {
-		this->dice.setPosition(sf::Vector2f(x,y));
+	void setposition(float x, float y) {
+		this->dice.setPosition(sf::Vector2f(x, y));
 	}
 };
 #endif

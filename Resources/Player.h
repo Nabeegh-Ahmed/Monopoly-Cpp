@@ -47,14 +47,14 @@ Player::Player() {
 		coordx = 1050;
 		break;
 	}
-	std::string filepath="Assets/Pawns/P"+std::to_string(incrementer)+".png";
+	std::string filepath = "Assets/Pawns/P" + std::to_string(incrementer) + ".png";
 	playerID = incrementer;
-	balance = 5000; 
+	balance = 5000;
 	playershape.setSize(sf::Vector2f(50, 50));
 	playerimage.loadFromFile(filepath);
 	playergraphic.loadFromImage(playerimage);
 	playershape.setTexture(&playergraphic);
-	playershape.setPosition(sf::Vector2f(coordx,coordy));
+	playershape.setPosition(sf::Vector2f(coordx, coordy));
 	playertopleftcoordinates = sf::Vector2f(coordx, coordy);
 	oncellnumber = 1;
 	incrementer++;
