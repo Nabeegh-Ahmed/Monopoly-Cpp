@@ -13,6 +13,7 @@
 #include <vector>
 #include <typeinfo>
 
+#include "Menu.h"
 
 #include "GameEngine.h"
 #include "PrivateProperty.h"
@@ -36,6 +37,9 @@ private:
 	Dice gamedice;
 	int numberofplayers;
 	int thisplayersturn;
+	Menu menu;
+	userOptions userAttributes;
+	bool PlayStarted;
 public:
 	Board();
 	~Board();
@@ -53,9 +57,10 @@ public:
 Board::Board() {
 	thisplayersturn = 0;
 	numberofplayers = 5;//Interface will decide number of players
-	addplayers();
+	// addplayers();
 	addcells();
 	gamedice.setposition(550, -350);
+	PlayStarted = false;
 }
 Board::~Board() {
 	for (int i = 0; i < 41; i++) {
@@ -68,15 +73,23 @@ void Board::rungame() {
 	sf::Image icon;
 	icon.loadFromFile("assets/textures/inner_board.png");
 	window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
-	this->spectatecurrentplayer(window);
+	
 	screenview.setSize(sf::Vector2f(1280, 1024));
 	screenview.zoom(1.025f);
-	window.setView(screenview);
+	
 	sf::Event event;
+
 	while (window.isOpen())
 	{
 		while (window.pollEvent(event))
 		{
+			if (!PlayStarted) {
+				PlayStarted = menu.MenuPlay(userAttributes, event, window);
+				if (PlayStarted) {
+					this->numberofplayers = userAttributes.amountOfPlayers;
+					addplayers();
+				}
+			}
 			switch (event.type) {
 			case sf::Event::Closed:
 				window.close();
@@ -95,10 +108,21 @@ void Board::rungame() {
 				break;
 			}
 			
-			this->spectatecurrentplayer(window);
+			if (PlayStarted) {
+				window.setView(screenview);
+				this->spectatecurrentplayer(window);
+			}
+			if (PlayStarted) this->spectatecurrentplayer(window);
+			
 			window.clear(sf::Color::White);
-			this->drawboard(window);
-			this->drawplayers(window);
+			if (PlayStarted) {
+				this->drawboard(window);
+				this->drawplayers(window);
+			}
+			else {
+				menu.draw(window);
+			}
+
 			window.display();
 		}
 	}
