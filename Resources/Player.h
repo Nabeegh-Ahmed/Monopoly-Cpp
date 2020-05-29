@@ -67,7 +67,7 @@ Player::Player() {
 	}
 	propertiesownedlist = 0;
 	numberofpropertiesowned = 0;
-	std::string filepath = "Assets/Pawns/P" + std::to_string(incrementer) + ".png";
+	std::string filepath = "assets/Pawns/P" + std::to_string(incrementer) + ".png";
 	playerID = incrementer;
 	balance = 5000;
 	playershape.setSize(sf::Vector2f(50, 50));

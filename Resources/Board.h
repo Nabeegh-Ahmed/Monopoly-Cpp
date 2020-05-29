@@ -13,7 +13,7 @@
 #include <vector>
 #include <typeinfo>
 
-
+#include "Menu.h"
 #include "GameEngine.h"
 #include "PrivateProperty.h"
 #include "PublicProperty.h"
@@ -36,6 +36,9 @@ private:
 	Dice gamedice;
 	int numberofplayers;
 	int thisplayersturn;
+	bool PlayStarted;
+	Menu menu;
+	userOptions userAttributes;
 public:
 	Board();
 	~Board();
@@ -54,9 +57,9 @@ public:
 	void doublerentforstations();
 	int whichpropertyselectedmouse(sf::Vector2i coordinates);
 	void updatehighestnumofupgrades();
-	void exhibitpropertycard(int propertyID,int &celltoreturn, bool & ispublicprop ,sf::RenderWindow& window);
+	void exhibitpropertycard(int propertyID, int& celltoreturn, bool& ispublicprop, sf::RenderWindow& window);
 	int whichoptionselectedcard(sf::Vector2i coordinates);
-	void upgradebuttonprocessing(int &selectinput, int propertyID, int cellnum, bool ispublicprop,sf::RenderWindow & window);
+	void upgradebuttonprocessing(int& selectinput, int propertyID, int cellnum, bool ispublicprop, sf::RenderWindow& window);
 	//-----------------------------------------------------------------------
 	void endturn();
 	void addcells();
@@ -67,7 +70,6 @@ public:
 Board::Board() {
 	thisplayersturn = 0;
 	numberofplayers = 5;//Interface will decide number of players
-	addplayers();
 	addcells();
 	gamedice.setposition(550, -350);
 }
@@ -82,15 +84,23 @@ void Board::rungame() {
 	sf::Image icon;
 	icon.loadFromFile("assets/textures/inner_board.png");
 	window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
-	this->spectatecurrentplayer(window);
+	
 	screenview.setSize(sf::Vector2f(1280, 1024));
 	screenview.zoom(1.025f);
-	window.setView(screenview);
+	
 	sf::Event event;
+
 	while (window.isOpen())
 	{
 		while (window.pollEvent(event))
 		{
+			if (!PlayStarted) {
+				PlayStarted = menu.MenuPlay(userAttributes, event, window);
+				if (PlayStarted) {
+					this->numberofplayers = userAttributes.amountOfPlayers;
+					addplayers();
+				}
+			}
 			switch (event.type) {
 			case sf::Event::Closed:
 				window.close();
@@ -111,15 +121,28 @@ void Board::rungame() {
 				}
 				break;
 			}
-			this->doublerentforstations();
-			this->doublerentforutilities();
-			for (int i = 0; i < numberofplayers; i++) {
-				listofplayers[i][0].updatelistofownedgroups();
+			
+
+			if (PlayStarted) {
+				window.setView(screenview);
+				this->spectatecurrentplayer(window);
+				this->doublerentforstations();
+				this->doublerentforutilities();
+				for (int i = 0; i < numberofplayers; i++) {
+					listofplayers[i][0].updatelistofownedgroups();
+				}
 			}
-			this->spectatecurrentplayer(window);
+			
+			
 			window.clear(sf::Color::White);
-			this->drawboard(window);
-			this->drawplayers(window);
+			if (PlayStarted) {
+				this->drawboard(window);
+				this->drawplayers(window);
+			}
+			else {
+				menu.draw(window);
+			}
+
 			window.display();
 		}
 	}
@@ -134,7 +157,7 @@ void Board::addplayers() {
 	for (int i = 0; i < this->numberofplayers; i++) {
 		this->listofplayers[i] = new Player;
 	}
-	for (int i = 1; i <19; i++) {
+	for (int i = 1; i < 19; i++) {
 		listofplayers[0][0].addpropertyID(i);
 	}
 	for (int i = 20; i <= 28; i++) {
@@ -143,9 +166,9 @@ void Board::addplayers() {
 }
 void Board::addcells() {
 	listofcells = new Cell * [41];
-	
+
 	listofcells[0] = new Special;
-	
+
 	// Johar Town A
 	listofcells[1] = new PrivateProperty;
 	static_cast<PrivateProperty*>(listofcells[1])->setPrice(200);
@@ -170,12 +193,12 @@ void Board::addcells() {
 
 	// Iqbal Town A
 	listofcells[6] = new PrivateProperty;
-	static_cast<PrivateProperty*>(listofcells[6])->setPrice(250);	
+	static_cast<PrivateProperty*>(listofcells[6])->setPrice(250);
 	static_cast<PrivateProperty*>(listofcells[6])->setRent(60);
 	static_cast<PrivateProperty*>(listofcells[6])->setGroup("iqbal");
 
 	listofcells[7] = new Chance;
-	
+
 	// Iqbal Town B
 	listofcells[8] = new PrivateProperty;
 	static_cast<PrivateProperty*>(listofcells[8])->setPrice(300);
@@ -196,7 +219,7 @@ void Board::addcells() {
 	static_cast<PrivateProperty*>(listofcells[11])->setPrice(300);
 	static_cast<PrivateProperty*>(listofcells[11])->setRent(100);
 	static_cast<PrivateProperty*>(listofcells[11])->setGroup("faisal");
-	
+
 	// SUI
 	listofcells[12] = new PublicProperty;
 	static_cast<PublicProperty*>(listofcells[12])->setPrice(2500);
@@ -330,7 +353,7 @@ void Board::addcells() {
 	static_cast<PublicProperty*>(listofcells[37])->setGroup("utility");
 
 	listofcells[38] = new Special; // Property Tax
-	
+
 	// PTCL
 	listofcells[39] = new PublicProperty;
 	static_cast<PublicProperty*>(listofcells[39])->setPrice(8000);
@@ -459,16 +482,16 @@ void Board::upgradesystem(sf::RenderWindow& window) {
 					switch (sequenceofevents) {
 					case 1:
 						propertyIDselected = whichpropertyselectedmouse(mousecoords);
-						exhibitpropertycard(propertyIDselected,maincellnumber,ispublicprop, window);
+						exhibitpropertycard(propertyIDselected, maincellnumber, ispublicprop, window);
 						if (propertyIDselected != -1) { sequenceofevents++; }
 						break;
 					case 2:
-							upgradeselected = whichoptionselectedcard(mousecoords);
-							updatehighestnumofupgrades();
-							upgradebuttonprocessing(upgradeselected, propertyIDselected, maincellnumber,ispublicprop,window);
-							updatehighestnumofupgrades();
-							exhibitpropertycard(propertyIDselected, maincellnumber, ispublicprop, window);
-							if (upgradeselected != -1) {}
+						upgradeselected = whichoptionselectedcard(mousecoords);
+						updatehighestnumofupgrades();
+						upgradebuttonprocessing(upgradeselected, propertyIDselected, maincellnumber, ispublicprop, window);
+						updatehighestnumofupgrades();
+						exhibitpropertycard(propertyIDselected, maincellnumber, ispublicprop, window);
+						if (upgradeselected != -1) {}
 						break;
 					}
 				}
@@ -490,10 +513,10 @@ void Board::upgradesystem(sf::RenderWindow& window) {
 	}
 	this->removeupgradepanel(window);
 }
-void Board::bringupgradepanel(sf::RenderWindow & window) {
+void Board::bringupgradepanel(sf::RenderWindow& window) {
 	float amounttoshiftx = -72.5;
 	float amountoshifty = 0;
-	sf::RectangleShape panel(sf::Vector2f(600,1100));
+	sf::RectangleShape panel(sf::Vector2f(600, 1100));
 	sf::RectangleShape upgradeshape(sf::Vector2f(135, 130));
 	sf::Image upgradeimage;
 	sf::Texture upgradetexture;
@@ -882,9 +905,9 @@ int Board::whichpropertyselectedmouse(sf::Vector2i coordinates) {
 	for (int rows = 0, filepathcounter = 1; rows < 7; rows++) {
 		for (int cols = 0; cols < 4; cols++, filepathcounter++) {
 			if (listofplayers[thisplayersturn][0].propertyowned(filepathcounter)) {
-				topleftofblockx = 710 + 145 * cols+10;
-				topleftofblocky = -50 + 140 * rows+100;
-				if ((coordinates.x > topleftofblockx && coordinates.x < topleftofblockx + 135)&&(coordinates.y>topleftofblocky && coordinates.y<topleftofblocky+130)) {
+				topleftofblockx = 710 + 145 * cols + 10;
+				topleftofblocky = -50 + 140 * rows + 100;
+				if ((coordinates.x > topleftofblockx&& coordinates.x < topleftofblockx + 135) && (coordinates.y > topleftofblocky&& coordinates.y < topleftofblocky + 130)) {
 					return filepathcounter;
 				}
 			}
@@ -892,7 +915,7 @@ int Board::whichpropertyselectedmouse(sf::Vector2i coordinates) {
 	}
 	return -1;
 }
-void Board::exhibitpropertycard(int propertyID,int& cellnumtoreturn,bool &ispublicprop, sf::RenderWindow& window) {
+void Board::exhibitpropertycard(int propertyID, int& cellnumtoreturn, bool& ispublicprop, sf::RenderWindow& window) {
 	int cellnumber = -1;
 	bool publicprop = true;
 	if (propertyID != -1) {
@@ -1094,7 +1117,7 @@ void Board::exhibitpropertycard(int propertyID,int& cellnumtoreturn,bool &ispubl
 					text.setString(std::to_string(static_cast<PrivateProperty*>(listofcells[cellnumber])->getprivaterent()) + " PKR");
 				}
 				else {
-					text.setString(std::to_string(static_cast<PrivateProperty*>(listofcells[cellnumber])->getprivaterent()*2) + " PKR");
+					text.setString(std::to_string(static_cast<PrivateProperty*>(listofcells[cellnumber])->getprivaterent() * 2) + " PKR");
 				}
 			}
 			else {
@@ -1126,7 +1149,7 @@ void Board::exhibitpropertycard(int propertyID,int& cellnumtoreturn,bool &ispubl
 			else {
 				text.setString("No");
 			}
-			text.setPosition(295,265 );
+			text.setPosition(295, 265);
 			window.draw(text);
 			icongraphic.loadFromImage(iconimage);
 			icon.setTexture(&icongraphic);
@@ -1323,7 +1346,7 @@ void Board::doublerentforstations() {
 		static_cast<PublicProperty*>(listofcells[15])->setDoubleRent(1);
 		static_cast<PublicProperty*>(listofcells[25])->setDoubleRent(1);
 		static_cast<PublicProperty*>(listofcells[35])->setDoubleRent(1);
-		controller=0;
+		controller = 0;
 	}
 	else {
 		static_cast<PublicProperty*>(listofcells[5])->setDoubleRent(0);
@@ -1335,11 +1358,11 @@ void Board::doublerentforstations() {
 }
 int Board::whichoptionselectedcard(sf::Vector2i coordinates) {
 	int topleftx = 0, toplefty = 0;
-	for (int i = 0,count=1; i < 3; i++) {
+	for (int i = 0, count = 1; i < 3; i++) {
 		toplefty = 280 + i * 60;
-		for (int j = 0; j < 2; j++,count++) {
-			topleftx=250 + j * 50;
-			if ((coordinates.x > topleftx && coordinates.x < topleftx + 35) && (coordinates.y > toplefty && coordinates.y < toplefty + 35)) {
+		for (int j = 0; j < 2; j++, count++) {
+			topleftx = 250 + j * 50;
+			if ((coordinates.x > topleftx&& coordinates.x < topleftx + 35) && (coordinates.y > toplefty&& coordinates.y < toplefty + 35)) {
 				return count;
 			}
 
@@ -1347,27 +1370,27 @@ int Board::whichoptionselectedcard(sf::Vector2i coordinates) {
 	}
 	topleftx = 200;
 	toplefty = 460;
-	if ((coordinates.x > topleftx && coordinates.x < topleftx + 35) && (coordinates.y > toplefty && coordinates.y < toplefty + 35)) {
+	if ((coordinates.x > topleftx&& coordinates.x < topleftx + 35) && (coordinates.y > toplefty&& coordinates.y < toplefty + 35)) {
 		return 7;
 	}
 	topleftx = 347;
 	toplefty = 460;
-	if ((coordinates.x > topleftx && coordinates.x < topleftx + 35) && (coordinates.y > toplefty && coordinates.y < toplefty + 35)) {
+	if ((coordinates.x > topleftx&& coordinates.x < topleftx + 35) && (coordinates.y > toplefty&& coordinates.y < toplefty + 35)) {
 		return 8;
 	}
 	topleftx = 270;
 	toplefty = 510;
-	if ((coordinates.x > topleftx && coordinates.x < topleftx + 35) && (coordinates.y > toplefty && coordinates.y < toplefty + 35)) {
+	if ((coordinates.x > topleftx&& coordinates.x < topleftx + 35) && (coordinates.y > toplefty&& coordinates.y < toplefty + 35)) {
 		return 9;
 	}
 	topleftx = 316;
 	toplefty = 547;
-	if ((coordinates.x > topleftx && coordinates.x < topleftx + 120) && (coordinates.y > toplefty && coordinates.y < toplefty + 50)) {
+	if ((coordinates.x > topleftx&& coordinates.x < topleftx + 120) && (coordinates.y > toplefty&& coordinates.y < toplefty + 50)) {
 		return 10;
 	}
 	return -1;
 }
-void Board::upgradebuttonprocessing(int &selectinput,int propertyID,int cellnumber,bool ispublicprop,sf::RenderWindow&window) {
+void Board::upgradebuttonprocessing(int& selectinput, int propertyID, int cellnumber, bool ispublicprop, sf::RenderWindow& window) {
 	if (selectinput != -1) {
 		if (!ispublicprop) {
 			if (listofplayers[thisplayersturn][0].playerownsallofthisprivategroup(propertyID)) {
@@ -1428,7 +1451,7 @@ void Board::upgradebuttonprocessing(int &selectinput,int propertyID,int cellnumb
 						if (static_cast<PrivateProperty*>(listofcells[cellnumber])->getnumberofhouses() >= 3) {
 							static_cast<PrivateProperty*>(listofcells[cellnumber])->addshop(true);
 						}
-					else {
+						else {
 							if (this->listofplayers[thisplayersturn][0].withdrawcash(300)) {
 								static_cast<PrivateProperty*>(listofcells[cellnumber])->addshop(false);
 							}
@@ -1483,7 +1506,7 @@ void Board::upgradebuttonprocessing(int &selectinput,int propertyID,int cellnumb
 			}
 		}
 		if (selectinput == 10) {
-			if (static_cast<Property*>(listofcells[cellnumber])->getmortgageflag()==false) {
+			if (static_cast<Property*>(listofcells[cellnumber])->getmortgageflag() == false) {
 				if (ispublicprop) {
 					this->listofplayers[thisplayersturn][0].depositcash(static_cast<PublicProperty*>(listofcells[cellnumber])->sellpublicproperty());
 				}
@@ -1493,7 +1516,7 @@ void Board::upgradebuttonprocessing(int &selectinput,int propertyID,int cellnumb
 				static_cast<Property*>(listofcells[cellnumber])->setmortgagedflag(1);
 			}
 			else {
-				if (this->listofplayers[thisplayersturn][0].withdrawcash(static_cast<Property*>(listofcells[cellnumber])->getMortgage()*1.2)) {
+				if (this->listofplayers[thisplayersturn][0].withdrawcash(static_cast<Property*>(listofcells[cellnumber])->getMortgage() * 1.2)) {
 
 					static_cast<Property*>(listofcells[cellnumber])->setmortgagedflag(0);
 				}
