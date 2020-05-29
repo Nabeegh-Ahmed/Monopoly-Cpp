@@ -1,27 +1,14 @@
-#include <SFML/Graphics.hpp>
-#include "Resources/Dice.h"
-#include "Resources/GameEngine.h"
 #include <iostream>
+#include <SFML/Graphics.hpp>
+#include "Resources/Cell.h"
+#include"Resources/Board.h"
+#include "Resources/PrivateProperty.h"
 
+int PrivateProperty::highestnumberofhotels[7] = { 0,0,0,0,0,0,0 };
+int PrivateProperty::highestnumberofhouses[7] = { 0,0,0,0,0,0,0 };
+int PrivateProperty::highestnumberofshops[7] = { 0,0,0,0,0,0,0 };
 int main() {
-    sf::RenderWindow window(sf::VideoMode(200, 200), "SFML works!");
-    Dice d(200, 200);
-    GPEngine Engine;
-
-    while (window.isOpen())
-    {
-        sf::Event event;
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-                window.close();
-            else if (Engine.MouseClick(d.getBlock(), event, window)) std::cout << d.Roll() << std::endl;
-        }
-        
-        window.clear(sf::Color::White);
-        d.Draw(window);
-        window.display();
-    }
-
-    return 0;
+	Board game;
+	game.rungame();
+	return 0;
 }
