@@ -11,7 +11,7 @@
 #include <iostream>
 #include <stdint.h>
 #include <vector>
-#include <typeinfo>
+#include <typeinfo> 
 
 #include "Menu.h"
 #include "GameEngine.h"
@@ -45,7 +45,7 @@ public:
 	void drawboard(sf::RenderWindow& window);
 	void drawplayers(sf::RenderWindow& window);
 	void addplayers();
-	void moveplayerandswitchturn(sf::RenderWindow& window);
+	void moveplayermechanicandgraphic(sf::RenderWindow& window);
 	void moveplayerprocess(sf::RenderWindow& window);
 	void spectatecurrentplayer(sf::RenderWindow& window);
 	//--------------------------------------------- Upgrade Panel Doodads----
@@ -60,7 +60,11 @@ public:
 	void exhibitpropertycard(int propertyID, int& celltoreturn, bool& ispublicprop, sf::RenderWindow& window);
 	int whichoptionselectedcard(sf::Vector2i coordinates);
 	void upgradebuttonprocessing(int& selectinput, int propertyID, int cellnum, bool ispublicprop, sf::RenderWindow& window);
-	//-----------------------------------------------------------------------
+	//---------------------------------------------------- Go and Jail
+	void gotojail(sf::RenderWindow & window);
+	bool yesnopopup(sf::RenderWindow& window, std::string message);
+	void passedgo();
+	//-------------------------------------------
 	void endturn();
 	void addcells();
 	void rungame();
@@ -84,7 +88,6 @@ void Board::rungame() {
 	sf::Image icon;
 	icon.loadFromFile("assets/textures/inner_board.png");
 	window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
-	
 	screenview.setSize(sf::Vector2f(1280, 1024));
 	screenview.zoom(1.025f);
 	
@@ -114,10 +117,16 @@ void Board::rungame() {
 					screenview.zoom(1.1f);
 				}
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
-					this->moveplayerandswitchturn(window);
+					this->moveplayermechanicandgraphic(window);
+				}
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+					this->endturn();
 				}
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
 					this->upgradesystem(window);
+				}
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) {
+					this->gotojail(window);
 				}
 				break;
 			}
@@ -393,10 +402,10 @@ void Board::moveplayerprocess(sf::RenderWindow& window) {
 				amounttoshifty = 0;
 			}
 			else {
-				if (currentcell >= 31 && currentcell <= 40) {
+				if (currentcell >= 31 && currentcell <= 41) {
 					amounttoshiftx = 0;
 					amounttoshifty = 0.150;
-					if (currentcell == 40) {
+					if (currentcell == 41) {
 						currentcell = 1;
 					}
 				}
@@ -428,32 +437,63 @@ void Board::moveplayerprocess(sf::RenderWindow& window) {
 	this->spectatecurrentplayer(window);
 	listofplayers[thisplayersturn][0].setcurrentcell(currentcell);
 }
-void Board::moveplayerandswitchturn(sf::RenderWindow& window) {
+void Board::moveplayermechanicandgraphic(sf::RenderWindow& window) {
 	screenview.setCenter(500, -300);
 	window.setView(screenview);
-	int roll = 0;
-	for (int counter = 0; counter < 100; counter++) {
+	if (this->listofplayers[thisplayersturn][0].getturnsinjail() == 0) {
+		int roll = 0;
+		for (int counter = 0; counter < 100; counter++) {
+			window.clear(sf::Color::White);
+			this->drawboard(window);
+			this->drawplayers(window);
+			roll = gamedice.Roll();
+			gamedice.Draw(window);
+			window.display();
+		}
 		window.clear(sf::Color::White);
 		this->drawboard(window);
 		this->drawplayers(window);
-		roll = gamedice.Roll();
 		gamedice.Draw(window);
 		window.display();
-	}
-	window.clear(sf::Color::White);
-	this->drawboard(window);
-	this->drawplayers(window);
-	gamedice.Draw(window);
-	window.display();
-	for (int timebuffer = 0; timebuffer < 100000000; timebuffer++) {
-		for (int timebuffer2 = 0; timebuffer2 < 6; timebuffer2++) {
+		for (int timebuffer = 0; timebuffer < 100000000; timebuffer++) {
+			for (int timebuffer2 = 0; timebuffer2 < 6; timebuffer2++) {
 
+			}
+		}
+		for (int i = 0; i < roll; i++) {
+			this->moveplayerprocess(window);
+			if (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() == 1) {
+				passedgo();
+			}
 		}
 	}
-	for (int i = 0; i < roll; i++) {
-		this->moveplayerprocess(window);
+	else {
+		this->listofplayers[thisplayersturn][0].spendturninjail();
+		if (this->yesnopopup(window,"Press Left Click to (Pay 400PKR Fee/Use GOJF card) to get released or Right Click to not do so")) {
+			if (this->listofplayers[thisplayersturn][0].removeGOJFcard()) {
+				this->listofplayers[thisplayersturn][0].setturnsinjail(0);
+				this->yesnopopup(window, "You have used 1 GOJF card, Proceed with turn");
+				this->moveplayermechanicandgraphic(window);
+			}
+			else {
+				if (this->listofplayers[thisplayersturn][0].withdrawcash(400)) {
+					this->listofplayers[thisplayersturn][0].setturnsinjail(0);
+					this->yesnopopup(window, "You have payed 400PKR, Proceed with turn");
+					this->moveplayermechanicandgraphic(window);
+				}
+				else{
+					this->yesnopopup(window, "You possess neither GOJF cards, nor enough cash");
+				}
+			}
+		}
+		else {
+		}
+		for (int timebuffer = 0; timebuffer < 100000000; timebuffer++) {
+			for (int timebuffer2 = 0; timebuffer2 < 5; timebuffer2++) {
+
+			}
+		}
 	}
-	this->endturn();
 }
 void Board::endturn() {
 	this->thisplayersturn++;
@@ -462,56 +502,56 @@ void Board::endturn() {
 	}
 }
 void Board::upgradesystem(sf::RenderWindow& window) {
-	sf::Event event;
-	sf::Vector2i mousecoords(0, 0);
-	bool exitflag = false;
-	bool ispublicprop = false;
-	int sequenceofevents = 1;
-	int maincellnumber = -1;
-	int propertyIDselected = -1;
-	int upgradeselected = -1;
-	this->bringupgradepanel(window);
-	this->drawstaticpanel(window);
-	window.display();
-	while (!exitflag) {
-		while (window.pollEvent(event)) {
-			switch (event.type) {
-			case sf::Event::MouseButtonPressed:
-				if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-					mousecoords = sf::Mouse::getPosition(window);
-					switch (sequenceofevents) {
-					case 1:
-						propertyIDselected = whichpropertyselectedmouse(mousecoords);
-						exhibitpropertycard(propertyIDselected, maincellnumber, ispublicprop, window);
-						if (propertyIDselected != -1) { sequenceofevents++; }
-						break;
-					case 2:
-						upgradeselected = whichoptionselectedcard(mousecoords);
-						updatehighestnumofupgrades();
-						upgradebuttonprocessing(upgradeselected, propertyIDselected, maincellnumber, ispublicprop, window);
-						updatehighestnumofupgrades();
-						exhibitpropertycard(propertyIDselected, maincellnumber, ispublicprop, window);
-						if (upgradeselected != -1) {}
-						break;
+		sf::Event event;
+		sf::Vector2i mousecoords(0, 0);
+		bool exitflag = false;
+		bool ispublicprop = false;
+		int sequenceofevents = 1;
+		int maincellnumber = -1;
+		int propertyIDselected = -1;
+		int upgradeselected = -1;
+		this->bringupgradepanel(window);
+		this->drawstaticpanel(window);
+		window.display();
+		while (!exitflag) {
+			while (window.pollEvent(event)) {
+				switch (event.type) {
+				case sf::Event::MouseButtonPressed:
+					if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+						mousecoords = sf::Mouse::getPosition(window);
+						switch (sequenceofevents) {
+						case 1:
+							propertyIDselected = whichpropertyselectedmouse(mousecoords);
+							exhibitpropertycard(propertyIDselected, maincellnumber, ispublicprop, window);
+							if (propertyIDselected != -1) { sequenceofevents++; }
+							break;
+						case 2:
+							upgradeselected = whichoptionselectedcard(mousecoords);
+							updatehighestnumofupgrades();
+							upgradebuttonprocessing(upgradeselected, propertyIDselected, maincellnumber, ispublicprop, window);
+							updatehighestnumofupgrades();
+							exhibitpropertycard(propertyIDselected, maincellnumber, ispublicprop, window);
+							if (upgradeselected != -1) {}
+							break;
+						}
 					}
-				}
-				if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
-					sequenceofevents--;
-					switch (sequenceofevents) {
-					case 0:
-						exitflag = true;
-						break;
-					case 1:
-						this->drawstaticpanel(window);
-						window.display();
-						break;
+					if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+						sequenceofevents--;
+						switch (sequenceofevents) {
+						case 0:
+							exitflag = true;
+							break;
+						case 1:
+							this->drawstaticpanel(window);
+							window.display();
+							break;
+						}
 					}
+					break;
 				}
-				break;
 			}
 		}
-	}
-	this->removeupgradepanel(window);
+		this->removeupgradepanel(window);
 }
 void Board::bringupgradepanel(sf::RenderWindow& window) {
 	float amounttoshiftx = -72.5;
@@ -1547,5 +1587,59 @@ void Board::updatehighestnumofupgrades() {
 	static_cast<PrivateProperty*>(listofcells[31])->updatehighest();
 	static_cast<PrivateProperty*>(listofcells[33])->updatehighest();
 	static_cast<PrivateProperty*>(listofcells[34])->updatehighest();
+}
+void Board::gotojail(sf::RenderWindow & window) {
+	while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 11) {
+		this->moveplayerprocess(window);
+	}
+	this->listofplayers[thisplayersturn][0].setturnsinjail(2);
+}
+bool Board::yesnopopup(sf::RenderWindow& window, std::string message) {
+	sf::RectangleShape messageboard(sf::Vector2f(message.length()*10.5,75));
+	sf::Font font;
+	sf::Text text;
+	sf::Event event;
+	bool exitflag = false;
+	font.loadFromFile("assets/TimesNew.ttf");
+	text.setFont(font);
+	text.setFillColor(sf::Color::White);
+	text.setStyle(sf::Text::Bold);
+	text.setOutlineThickness(1);
+	text.setOutlineColor(sf::Color::Black);
+	text.setCharacterSize(18);
+	text.setString(message);
+	messageboard.setPosition(20,700 );
+	text.setPosition(30, 710);
+	messageboard.setFillColor(sf::Color::Color(65, 73, 80));
+	messageboard.setOutlineThickness(3);
+	messageboard.setOutlineColor(sf::Color::Black);
+	window.clear(sf::Color::White);
+	screenview.setCenter(640, 512);
+	window.setView(screenview);
+	this->drawboard(window);
+	this->drawplayers(window);
+	window.draw(messageboard);
+	window.draw(text);
+	window.display();
+	while (!exitflag) {
+		while (window.pollEvent(event)) {
+			switch (event.type) {
+			case sf::Event::MouseButtonPressed:
+				if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+					return true;
+					break;
+				}
+				if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+					return false;
+					break;
+				}
+			}
+		}
+	}
+}
+void Board::passedgo() {
+	if (this->listofplayers[thisplayersturn][0].getturnsinjail() == 0) {
+		listofplayers[thisplayersturn][0].depositcash(500);
+	}
 }
 #endif

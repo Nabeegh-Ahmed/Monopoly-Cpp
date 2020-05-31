@@ -10,9 +10,11 @@ private:
 	int playerID;
 	int oncellnumber;
 	int balance;
+	int turnsinjail;
 	int* propertiesownedlist;
 	int numberofpropertiesowned;
 	bool listofgroups[7];
+	int GOJFcards = 0;
 	sf::RectangleShape playershape;
 	sf::Image playerimage;
 	sf::Texture playergraphic;
@@ -29,8 +31,14 @@ public:
 	void removepropertyID(int ID);
 	bool ownallstations();
 	bool ownallutilities();
+	void gainGOJFcard();
+	bool removeGOJFcard();
+	int getGOJFcard();
 	int getbalance();
 	int getcurrentlyoncell();
+	void spendturninjail();
+	int getturnsinjail();
+	void setturnsinjail(int turns);
 	void depositcash(int amount);
 	bool withdrawcash(int amount);
 	void displayownedpropsconsole();
@@ -41,6 +49,8 @@ public:
 };
 
 Player::Player() {
+	turnsinjail = 0;
+	GOJFcards = 0;
 	static int incrementer = 1;
 	static float coordx = 950;
 	static float coordy = 900;
@@ -121,7 +131,6 @@ void Player::addpropertyID(int ID) {
 		delete[]tempIDholder;
 		tempIDholder = 0;
 	}
-	
 }
 void Player::removepropertyID(int ID) {
 	int* tempIDholder = 0;
@@ -297,5 +306,30 @@ bool Player::playerownsallofthisprivategroup(int propertyID) {
 		return listofgroups[6];
 	}
 	return 0;
+}
+void Player::spendturninjail() {
+	this->turnsinjail--;
+	if (this->turnsinjail < 0) {
+		this->turnsinjail = 0;
+	}
+}
+int Player::getturnsinjail() {
+	return this->turnsinjail;
+}
+void Player::setturnsinjail(int turns) {
+	this->turnsinjail = turns;
+}
+void Player::gainGOJFcard() {
+	GOJFcards++;
+}
+bool Player::removeGOJFcard() {
+	if (this->GOJFcards > 0) {
+		GOJFcards--;
+		return true;
+	}
+	return false;
+}
+int Player::getGOJFcard() {
+	return this->GOJFcards;
 }
 #endif
