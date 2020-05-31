@@ -10,8 +10,10 @@ class Dice {
 private:
 	sf::RectangleShape dice;
 	sf::Texture* faces;
+	int rollamount;
 public:
 	Dice() {
+		rollamount = 0;
 		float width = 150;
 		float height = 150;
 		srand(time(NULL));
@@ -39,6 +41,7 @@ public:
 	int Roll() {
 		unsigned int faceNumber = rand() % 6 + 0;
 		dice.setTexture(&faces[faceNumber]);
+		rollamount = faceNumber + 1;
 		return faceNumber + 1;
 	}
 	void Draw(sf::RenderWindow& window) {
@@ -46,6 +49,9 @@ public:
 	}
 	void setposition(float x, float y) {
 		this->dice.setPosition(sf::Vector2f(x, y));
+	}
+	int getamountrolled() {
+		return rollamount;
 	}
 };
 #endif

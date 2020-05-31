@@ -1,9 +1,12 @@
 #pragma once
 #include <stdint.h>
 #include "Cell.h"
-
+struct DrawnCard {
+	int id;
+	std::string message;
+};
 class Event : public Cell {
-	uint32_t type; // 0 for chest, 1 for chance, 2 for jail
+	uint32_t type; // 0 for chest, 1 for chance
 public:
 	Event(uint32_t event) : Cell() {
 		type = event;

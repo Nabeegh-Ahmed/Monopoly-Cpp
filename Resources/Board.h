@@ -46,7 +46,7 @@ public:
 	void drawplayers(sf::RenderWindow& window);
 	void addplayers();
 	void moveplayermechanicandgraphic(sf::RenderWindow& window);
-	void moveplayerprocess(sf::RenderWindow& window);
+	void moveplayerprocess(sf::RenderWindow& window, bool goforward);
 	void spectatecurrentplayer(sf::RenderWindow& window);
 	//--------------------------------------------- Upgrade Panel Doodads----
 	void upgradesystem(sf::RenderWindow& window);
@@ -60,12 +60,17 @@ public:
 	void exhibitpropertycard(int propertyID, int& celltoreturn, bool& ispublicprop, sf::RenderWindow& window);
 	int whichoptionselectedcard(sf::Vector2i coordinates);
 	void upgradebuttonprocessing(int& selectinput, int propertyID, int cellnum, bool ispublicprop, sf::RenderWindow& window);
+	//turn end stuff-------------------------------------
+	void processlandedncell(sf::RenderWindow& window);
+	void endturn(sf::RenderWindow& window);
+	//-----------------------------------Community and Chance
+	void drawcardforchanceorcomm(sf::RenderWindow& window, std::string message, bool ischance);
+	void getplayershousehotelshopamount(int& numhouses, int& numshops, int& numhotels);
 	//---------------------------------------------------- Go and Jail
 	void gotojail(sf::RenderWindow & window);
 	bool yesnopopup(sf::RenderWindow& window, std::string message);
 	void passedgo();
 	//-------------------------------------------
-	void endturn();
 	void addcells();
 	void rungame();
 	friend class Player;
@@ -120,13 +125,19 @@ void Board::rungame() {
 					this->moveplayermechanicandgraphic(window);
 				}
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
-					this->endturn();
+					this->endturn(window);
 				}
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
 					this->upgradesystem(window);
 				}
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) {
 					this->gotojail(window);
+				}
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
+					this->moveplayerprocess(window,true);
+				}
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
+					this->processlandedncell(window);
 				}
 				break;
 			}
@@ -140,6 +151,7 @@ void Board::rungame() {
 				for (int i = 0; i < numberofplayers; i++) {
 					listofplayers[i][0].updatelistofownedgroups();
 				}
+				updatehighestnumofupgrades();
 			}
 			
 			
@@ -380,13 +392,18 @@ void Board::spectatecurrentplayer(sf::RenderWindow& window) {
 	screenview.setCenter(this->listofplayers[this->thisplayersturn][0].getplayercoordinates());
 	window.setView(screenview);
 }
-void Board::moveplayerprocess(sf::RenderWindow& window) {
+void Board::moveplayerprocess(sf::RenderWindow& window, bool goforward) {
 	this->spectatecurrentplayer(window);
 	sf::RectangleShape tempplayershape = listofplayers[thisplayersturn][0].getplayershape();
 	int currentcell = listofplayers[thisplayersturn][0].getcurrentlyoncell();
 	float amounttoshiftx = 0;
 	float amounttoshifty = 0;
-	currentcell++;
+	if (goforward) {
+		currentcell++;
+	}
+	else {
+		currentcell--;
+	}
 	if (currentcell >= 1 && currentcell <= 11) {
 		amounttoshiftx = -0.150;
 		amounttoshifty = 0;
@@ -411,6 +428,10 @@ void Board::moveplayerprocess(sf::RenderWindow& window) {
 				}
 			}
 		}
+	}
+	if (!goforward) {
+		amounttoshiftx *= -1;
+		amounttoshifty *= -1;
 	}
 	for (float j = 1; j <= 1.75; j += 0.005) {
 		listofplayers[thisplayersturn][0].getplayershape().setScale(j, j);
@@ -461,7 +482,7 @@ void Board::moveplayermechanicandgraphic(sf::RenderWindow& window) {
 			}
 		}
 		for (int i = 0; i < roll; i++) {
-			this->moveplayerprocess(window);
+			this->moveplayerprocess(window,true);
 			if (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() == 1) {
 				passedgo();
 			}
@@ -495,7 +516,7 @@ void Board::moveplayermechanicandgraphic(sf::RenderWindow& window) {
 		}
 	}
 }
-void Board::endturn() {
+void Board::endturn(sf::RenderWindow & window) {
 	this->thisplayersturn++;
 	if (this->thisplayersturn >= numberofplayers) {
 		this->thisplayersturn = 0;
@@ -1589,13 +1610,13 @@ void Board::updatehighestnumofupgrades() {
 	static_cast<PrivateProperty*>(listofcells[34])->updatehighest();
 }
 void Board::gotojail(sf::RenderWindow & window) {
-	while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 11) {
-		this->moveplayerprocess(window);
-	}
 	this->listofplayers[thisplayersturn][0].setturnsinjail(2);
+	while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 11) {
+		this->moveplayerprocess(window,true);
+	}
 }
 bool Board::yesnopopup(sf::RenderWindow& window, std::string message) {
-	sf::RectangleShape messageboard(sf::Vector2f(message.length()*10.5,75));
+	sf::RectangleShape messageboard(sf::Vector2f(message.length()*11.5,75));
 	sf::Font font;
 	sf::Text text;
 	sf::Event event;
@@ -1606,7 +1627,7 @@ bool Board::yesnopopup(sf::RenderWindow& window, std::string message) {
 	text.setStyle(sf::Text::Bold);
 	text.setOutlineThickness(1);
 	text.setOutlineColor(sf::Color::Black);
-	text.setCharacterSize(18);
+	text.setCharacterSize(20);
 	text.setString(message);
 	messageboard.setPosition(20,700 );
 	text.setPosition(30, 710);
@@ -1640,6 +1661,582 @@ bool Board::yesnopopup(sf::RenderWindow& window, std::string message) {
 void Board::passedgo() {
 	if (this->listofplayers[thisplayersturn][0].getturnsinjail() == 0) {
 		listofplayers[thisplayersturn][0].depositcash(500);
+	}
+}
+void Board::processlandedncell(sf::RenderWindow & window) {
+	int c = this->listofplayers[thisplayersturn][0].getcurrentlyoncell();
+	bool ispublic = false, isprivate = false;
+	bool privateprophit = false;
+	bool publicprophit = false;
+	int numholder = 0;
+	int sumtopay = 0;
+	int propIDholder = 0;
+	int playerIDholder = 0;
+	int numberofshops = 0, numberofhouses = 0, numberofhotels = 0;
+	bool purchasedflag = false;
+	//Private----------------------------
+	if (c == 2 || c == 4) {
+		privateprophit = true;
+	}
+	if (c == 7 || c == 9 || c == 10) {
+		privateprophit = true;
+	}
+	if (c == 12 || c == 14 || c == 15) {
+		privateprophit = true;
+	}
+	if (c == 17 || c == 19 || c == 20) {
+		privateprophit = true;
+	}
+	if (c == 22 || c == 24 || c == 25) {
+		privateprophit = true;
+	}
+	if (c == 27 || c == 28 || c == 30) {
+		privateprophit = true;
+	}
+	if (c == 32 || c == 34 || c == 35) {
+		privateprophit = true;
+	}
+	if (privateprophit) {
+		propIDholder = static_cast<Property*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getPropert_ID();
+		for (int i = 0; i < numberofplayers; i++) {
+			if (this->listofplayers[i][0].propertyowned(propIDholder)) {
+				playerIDholder = i;
+				purchasedflag = true;
+				break;
+			}
+		}
+		if (purchasedflag) {
+			if (playerIDholder != thisplayersturn) {
+				if (this->listofplayers[playerIDholder][0].playerownsallofthisprivategroup(static_cast<Property*>(listofcells[c-1])->getPropert_ID())) {
+					if (static_cast<PrivateProperty*>(listofcells[c - 1])->getanyupgrades()) {
+						sumtopay = static_cast<PrivateProperty*>(listofcells[c - 1])->getprivaterent();
+					}
+					else {
+						sumtopay = static_cast<PrivateProperty*>(listofcells[c - 1])->getprivaterent() * 2;
+					}
+				}
+				else {
+					sumtopay = static_cast<PrivateProperty*>(listofcells[c - 1])->getprivaterent();
+				}
+				yesnopopup(window, "Player " + std::to_string(thisplayersturn + 1) + " owes Player " + std::to_string(playerIDholder + 1) +": "+ std::to_string(sumtopay) + " PKR");
+				if (!(this->listofplayers[thisplayersturn][0].withdrawcash(sumtopay))) {
+					//Forceful payment here or bankruptcy
+				}
+				else {
+					this->listofplayers[playerIDholder][0].depositcash(sumtopay);
+					yesnopopup(window, "Transaction Completed");
+				}
+			}
+		}
+		else {
+			//ADD PURCHASE SYSTEM
+		}
+	}
+	//Private---------------------------
+	if (c == 6 || c == 16 || c == 26 || c == 36) {//Public stations
+		publicprophit = true;
+	}
+	if (c == 13 || c == 29 || c == 38 || c == 40) {//Public utility
+		publicprophit = true;
+	}
+	if (publicprophit) {
+		propIDholder = static_cast<Property*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getPropert_ID();
+		for (int i = 0; i < numberofplayers; i++) {
+			if (this->listofplayers[i][0].propertyowned(propIDholder)) {
+				playerIDholder = i;
+				purchasedflag = true;
+				break;
+			}
+		}
+		if (purchasedflag) {
+			if (playerIDholder != thisplayersturn) {
+				sumtopay = static_cast<PublicProperty*>(listofcells[c - 1])->getRentpublic();
+				yesnopopup(window, "Player " + std::to_string(thisplayersturn + 1) + " owes Player " + std::to_string(playerIDholder + 1) + ": "  + std::to_string(sumtopay) + " PKR");
+				if (!(this->listofplayers[thisplayersturn][0].withdrawcash(sumtopay))) {
+					//Forceful payment here or bankruptcy
+				}
+				else {
+					this->listofplayers[playerIDholder][0].depositcash(sumtopay);
+					yesnopopup(window, "Transaction Completed");
+				}
+			}
+		}
+		else {
+			//ADD PURCHASE SYSTEM
+		}
+	}
+	if (c == 3 || c == 18 || c == 33) {//Community
+		DrawnCard gotthiscard = static_cast<Chest*>(listofcells[c - 1])->getrandomcard();
+		drawcardforchanceorcomm(window, gotthiscard.message,false);
+		switch (gotthiscard.id) {
+		case 1:
+			while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 1) {
+				this->moveplayerprocess(window,true);
+			}
+			this->listofplayers[thisplayersturn][0].depositcash(400);
+			break;
+		case 2:
+			this->listofplayers[thisplayersturn][0].depositcash(200);
+			break;
+		case 3:
+			if (!(this->listofplayers[thisplayersturn][0].withdrawcash(200))) {
+				//Forceful payment here or bankruptcy
+			}
+			break;
+		case 4:
+			this->listofplayers[thisplayersturn][0].depositcash(50);
+			break;
+		case 5:
+			this->listofplayers[thisplayersturn][0].gainGOJFcard();
+			break;
+		case 6:
+			this->listofplayers[thisplayersturn][0].depositcash(150);
+			break;
+		case 7:
+			this->listofplayers[thisplayersturn][0].depositcash(200);
+			break;
+		case 8:
+			if (!(this->listofplayers[thisplayersturn][0].withdrawcash(100))) {
+				//Forceful payment here or bankruptcy
+			}
+			break;
+		case 9:
+			if (!(this->listofplayers[thisplayersturn][0].withdrawcash(200))) {
+				//Forceful payment here or bankruptcy
+			}
+			break;
+		case 10:
+			this->listofplayers[thisplayersturn][0].depositcash(50);
+			break;
+		case 11:
+			this->getplayershousehotelshopamount(numberofhouses, numberofshops, numberofhotels);
+			sumtopay = 0;
+			sumtopay += numberofhouses * 50;
+			sumtopay += numberofhotels * 125;
+			if (!(this->listofplayers[thisplayersturn][0].withdrawcash(sumtopay))) {
+				//Forceful payment here or bankruptcy
+			}
+			break;
+		case 12:
+			this->listofplayers[thisplayersturn][0].depositcash(300);
+			break;
+		case 13:
+			if (!(this->listofplayers[thisplayersturn][0].withdrawcash(50))) {
+				//Forceful payment here or bankruptcy
+			}
+			break;
+		case 14:
+			if (!(this->listofplayers[thisplayersturn][0].withdrawcash(80))) {
+				//Forceful payment here or bankruptcy
+			}
+			break;
+		case 15:
+			if (!(this->listofplayers[thisplayersturn][0].withdrawcash(50))) {
+				//Forceful payment here or bankruptcy
+			}
+			break;
+		}
+	}
+	if (c == 8 || c == 23 || c == 37) {//Chance
+		DrawnCard gotthiscard = static_cast<Chance*>(listofcells[c - 1])->getrandomcard();
+		drawcardforchanceorcomm(window, gotthiscard.message, true);
+		switch (gotthiscard.id) {
+		case 1:
+			while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 1) {
+				this->moveplayerprocess(window, true);
+			}
+			this->listofplayers[thisplayersturn][0].depositcash(300);
+			break;
+		case 2:
+			while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 27) {
+				this->moveplayerprocess(window, true);
+			}
+			this->processlandedncell(window);
+			break;
+		case 3:
+			while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 13 && this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 29 && this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 38&& this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 40) {
+				this->moveplayerprocess(window, true);
+			}
+			propIDholder = static_cast<Property*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell()-1])->getPropert_ID();
+			for (int i = 0; i < numberofplayers; i++) {
+				if (this->listofplayers[i][0].propertyowned(propIDholder)) {
+					playerIDholder = i;
+					purchasedflag = true;
+					break;
+				}
+			}
+			if (purchasedflag) {
+				if (playerIDholder != thisplayersturn) {
+					if (!(this->listofplayers[thisplayersturn][0].withdrawcash(static_cast<PublicProperty*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getRentpublic()*gamedice.getamountrolled()))) {
+						//Forceful payment here or bankruptcy
+					}
+					else {
+						this->listofplayers[playerIDholder][0].depositcash(static_cast<PublicProperty*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getRentpublic()* gamedice.getamountrolled());
+					}
+				}
+			}
+			else {
+				//ADD PURCHASE SYSTEM
+			}
+			break;
+		case 4:
+			while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 6 && this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 16 && this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 26 && this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 36) {
+				this->moveplayerprocess(window, true);
+			}
+			propIDholder = static_cast<Property*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getPropert_ID();
+			for (int i = 0; i < numberofplayers; i++) {
+				if (this->listofplayers[i][0].propertyowned(propIDholder)) {
+					playerIDholder = i;
+					purchasedflag = true;
+					break;
+				}
+			}
+			if (purchasedflag) {
+				if (playerIDholder != thisplayersturn) {
+					if (!(this->listofplayers[thisplayersturn][0].withdrawcash(static_cast<PublicProperty*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getRentpublic() *2))) {
+						//Forceful payment here or bankruptcy
+					}
+					else {
+						this->listofplayers[playerIDholder][0].depositcash(static_cast<PublicProperty*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getRentpublic()*2);
+					}
+				}
+			}
+			else {
+				//ADD PURCHASE SYSTEM
+			}
+			break;
+		case 5:
+			while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 6 && this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 16 && this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 26 && this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 36) {
+				this->moveplayerprocess(window, true);
+			}
+			propIDholder = static_cast<Property*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getPropert_ID();
+			for (int i = 0; i < numberofplayers; i++) {
+				if (this->listofplayers[i][0].propertyowned(propIDholder)) {
+					playerIDholder = i;
+					purchasedflag = true;
+					break;
+				}
+			}
+			if (purchasedflag) {
+				if (playerIDholder != thisplayersturn) {
+					if (!(this->listofplayers[thisplayersturn][0].withdrawcash(static_cast<PublicProperty*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getRentpublic() * 2))) {
+						//Forceful payment here or bankruptcy
+					}
+					else {
+						this->listofplayers[playerIDholder][0].depositcash(static_cast<PublicProperty*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getRentpublic() * 2);
+					}
+				}
+			}
+			else {
+				//ADD PURCHASE SYSTEM
+			}
+			break;
+		case 6:
+			while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 17) {
+				this->moveplayerprocess(window, true);
+				if (listofplayers[thisplayersturn][0].getcurrentlyoncell() == 1) {
+					listofplayers[thisplayersturn][0].depositcash(300);
+				}
+			}
+			this->processlandedncell(window);
+			break;
+		case 7:
+			this->listofplayers[thisplayersturn][0].depositcash(100);
+			break;
+		case 8:
+			this->listofplayers[thisplayersturn][0].gainGOJFcard();
+			break;
+		case 9:
+			numholder = listofplayers[thisplayersturn][0].getcurrentlyoncell()-4;
+			while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != numholder) {
+				this->moveplayerprocess(window, false);
+			}
+			this->processlandedncell(window);
+			break;
+		case 10:
+			this->getplayershousehotelshopamount(numberofhouses, numberofshops, numberofhotels);
+			sumtopay = 0;
+			sumtopay += numberofhouses * 50;
+			sumtopay += numberofhotels * 100;
+			if (!(this->listofplayers[thisplayersturn][0].withdrawcash(sumtopay))) {
+				//Forceful payment here or bankruptcy
+			}
+			break;
+		case 11:
+			if (!(this->listofplayers[thisplayersturn][0].withdrawcash(25))) {
+				//Forceful payment here or bankruptcy
+			}
+			break;
+		case 12:
+			for (int i = 0; i < numberofplayers; i++) {
+				if (i != thisplayersturn) {
+					if (!(this->listofplayers[thisplayersturn][0].withdrawcash(25))) {
+						//Forceful payment here or bankruptcy
+					}
+					else {
+						listofplayers[i][0].depositcash(25);
+					}
+				}
+			}
+			break;
+		case 13:
+			listofplayers[thisplayersturn][0].depositcash(150);
+			break;
+		case 14:
+			while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 5) {
+				this->moveplayerprocess(window, true);
+			}
+			break;
+		case 15:
+			while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 16) {
+				this->moveplayerprocess(window, true);
+			}
+			this->processlandedncell(window);
+			break;
+		}
+	}
+	if (c == 5) {//Land Tax
+		sumtopay = 0;
+		for (int i = 0; i < 41; i++) {
+			isprivate = false;
+			ispublic = false;
+			if (i == 1 || i == 3) {
+				isprivate = true;
+			}
+			if (i == 6 || i == 8 || i == 9) {
+				isprivate = true;
+			}
+			if (i == 11 || i == 13 || i == 14) {
+				isprivate = true;
+			}
+			if (i == 16 || i == 18 || i == 19) {
+				isprivate = true;
+			}
+			if (i == 21 || i == 23 || i == 24) {
+				isprivate = true;
+			}
+			if (i == 26 || i == 27 || i == 29) {
+				isprivate = true;
+			}
+			if (i == 31 || i == 33 ||  i == 34) {
+				isprivate = true;
+			}
+			if (i == 5 || i == 15 || i == 25 || i == 35) {
+				ispublic = true;
+			}
+			if (i == 12 || i == 28 || i == 37 || i == 39) {
+				ispublic = true;
+			}
+			if (ispublic || isprivate) {
+				if (listofplayers[thisplayersturn][0].propertyowned(static_cast<Property*>(listofcells[i])->getPropert_ID())) {
+					if (isprivate) {
+						sumtopay += static_cast<PrivateProperty*>(listofcells[i])->getPrice();
+					}
+					if (ispublic) {
+						sumtopay+= static_cast<PublicProperty*>(listofcells[i])->getPrice();
+					}
+				}
+			}
+		}
+		sumtopay *= 0.2;
+		yesnopopup(window, "Player " + std::to_string(thisplayersturn + 1) + " owes Bank: " + std::to_string(sumtopay) + " PKR Tax");
+		if (!(listofplayers[thisplayersturn][0].withdrawcash(sumtopay))) {
+			//Forceful payment here or bankruptcy
+		}
+		yesnopopup(window, "Transaction Complete");
+	}
+	if (c == 39) {//Property Tax
+		for (int i = 0; i < 41; i++) {
+			isprivate = false;
+			ispublic = false;
+			if (i == 1 || i == 3) {
+				isprivate = true;
+			}
+			if (i == 6 || i == 8 || i == 9) {
+				isprivate = true;
+			}
+			if (i == 11 || i == 13 || i == 14) {
+				isprivate = true;
+			}
+			if (i == 16 || i == 18 || i == 19) {
+				isprivate = true;
+			}
+			if (i == 21 || i == 23 || i == 24) {
+				isprivate = true;
+			}
+			if (i == 26 || i == 27 || i == 29) {
+				isprivate = true;
+			}
+			if (i == 31 || i == 33 || i == 34) {
+				isprivate = true;
+			}
+			if (i == 5 || i == 15 || i == 25 || i == 35) {
+				ispublic = true;
+			}
+			if (i == 12 || i == 28 || i == 37 || i == 39) {
+				ispublic = true;
+			}
+			if (ispublic || isprivate) {
+				if (listofplayers[thisplayersturn][0].propertyowned(static_cast<Property*>(listofcells[i])->getPropert_ID())) {
+					if (isprivate) {
+						sumtopay += static_cast<PrivateProperty*>(listofcells[i])->getPrice();
+					}
+					if (ispublic) {
+						sumtopay += static_cast<PublicProperty*>(listofcells[i])->getPrice();
+					}
+				}
+			}
+		}
+		sumtopay *= 0.1;
+		this->getplayershousehotelshopamount(numberofhouses, numberofshops, numberofhotels);
+		sumtopay += numberofhouses * 100 * 0.20;
+		sumtopay += numberofhotels * 1000 * 0.30;
+		sumtopay += numberofshops * 300 * 0.30;
+		yesnopopup(window, "Player " + std::to_string(thisplayersturn + 1) + " owes Bank: " + std::to_string(sumtopay) + " PKR Tax");
+		if (!(listofplayers[thisplayersturn][0].withdrawcash(sumtopay))) {
+			//Forceful payment here or bankruptcy
+		}
+		yesnopopup(window, "Transaction Complete");
+	}
+	if (c == 21) {
+		this->yesnopopup(window, "Pay parking fee of 10 PKR");
+		if (!(this->listofplayers[thisplayersturn][0].withdrawcash(10))) {
+			//Forceful payment here or bankruptcy
+		}
+	}
+	if (c == 31) {
+		this->yesnopopup(window, "Caught Red handed, Go to jail");
+		this->gotojail(window);
+	}
+}
+void Board::drawcardforchanceorcomm(sf::RenderWindow& window, std::string message, bool ischance){
+	sf::RectangleShape messageboard(sf::Vector2f(message.length() * 12, 75));
+	sf::Font font;
+	sf::Text text;
+	sf::Event event;
+	bool exitflag = false;
+	font.loadFromFile("assets/TimesNew.ttf");
+	text.setFont(font);
+	text.setFillColor(sf::Color::White);
+	text.setStyle(sf::Text::Bold);
+	text.setOutlineThickness(1);
+	text.setOutlineColor(sf::Color::Black);
+	text.setCharacterSize(22);
+	text.setString(message);
+	messageboard.setPosition(20, 700);
+	text.setPosition(35, 720);
+	if (ischance == false) {
+		messageboard.setFillColor(sf::Color::Color(3, 136, 211));
+	}
+	else {
+		messageboard.setFillColor(sf::Color::Color(220, 155, 89));
+	}
+	messageboard.setOutlineThickness(5);
+	if (ischance == false) {
+		messageboard.setOutlineColor(sf::Color::Color(0, 86, 161));
+	}
+	else {
+		messageboard.setOutlineColor(sf::Color::Color(180, 95, 29));
+	}
+	window.clear(sf::Color::White);
+	screenview.setCenter(640, 512);
+	window.setView(screenview);
+	this->drawboard(window);
+	this->drawplayers(window);
+	window.draw(messageboard);
+	window.draw(text);
+	window.display();
+	while (!exitflag) {
+		while (window.pollEvent(event)) {
+			switch (event.type) {
+			case sf::Event::MouseButtonPressed:
+				if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+					exitflag = true;
+				}
+				if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+					exitflag = true;
+				}
+			}
+		}
+	}
+}
+void Board::getplayershousehotelshopamount(int& numhouses, int& numshops, int& numhotels) {
+	numhouses = 0;
+	numhotels = 0;
+	numshops = 0;
+	if (listofplayers[thisplayersturn][0].playerownsallofthisprivategroup(1)) {
+		numhouses += static_cast<PrivateProperty*>(listofcells[1])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[1])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[1])->getnumberofhotels();
+		numhouses += static_cast<PrivateProperty*>(listofcells[3])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[3])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[3])->getnumberofhotels();
+	}
+	if (listofplayers[thisplayersturn][0].playerownsallofthisprivategroup(4)) {
+		numhouses += static_cast<PrivateProperty*>(listofcells[6])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[6])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[6])->getnumberofhotels();
+		numhouses += static_cast<PrivateProperty*>(listofcells[8])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[8])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[8])->getnumberofhotels();
+		numhouses += static_cast<PrivateProperty*>(listofcells[9])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[9])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[9])->getnumberofhotels();
+	}
+	if (listofplayers[thisplayersturn][0].playerownsallofthisprivategroup(7)) {
+		numhouses += static_cast<PrivateProperty*>(listofcells[11])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[11])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[11])->getnumberofhotels();
+		numhouses += static_cast<PrivateProperty*>(listofcells[13])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[13])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[13])->getnumberofhotels();
+		numhouses += static_cast<PrivateProperty*>(listofcells[14])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[14])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[14])->getnumberofhotels();
+	}
+	if (listofplayers[thisplayersturn][0].playerownsallofthisprivategroup(12)) {
+		numhouses += static_cast<PrivateProperty*>(listofcells[16])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[16])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[16])->getnumberofhotels();
+		numhouses += static_cast<PrivateProperty*>(listofcells[18])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[18])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[18])->getnumberofhotels();
+		numhouses += static_cast<PrivateProperty*>(listofcells[19])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[19])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[19])->getnumberofhotels();
+	}
+	if (listofplayers[thisplayersturn][0].playerownsallofthisprivategroup(15)) {
+		numhouses += static_cast<PrivateProperty*>(listofcells[21])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[21])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[21])->getnumberofhotels();
+		numhouses += static_cast<PrivateProperty*>(listofcells[23])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[23])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[23])->getnumberofhotels();
+		numhouses += static_cast<PrivateProperty*>(listofcells[24])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[24])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[24])->getnumberofhotels();
+	}
+	if (listofplayers[thisplayersturn][0].playerownsallofthisprivategroup(19)) {
+		numhouses += static_cast<PrivateProperty*>(listofcells[26])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[26])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[26])->getnumberofhotels();
+		numhouses += static_cast<PrivateProperty*>(listofcells[27])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[27])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[27])->getnumberofhotels();
+		numhouses += static_cast<PrivateProperty*>(listofcells[29])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[29])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[29])->getnumberofhotels();
+	}
+	if (listofplayers[thisplayersturn][0].playerownsallofthisprivategroup(23)) {
+		numhouses += static_cast<PrivateProperty*>(listofcells[31])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[31])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[31])->getnumberofhotels();
+		numhouses += static_cast<PrivateProperty*>(listofcells[33])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[33])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[33])->getnumberofhotels();
+		numhouses += static_cast<PrivateProperty*>(listofcells[34])->getnumberofhouses();
+		numshops += static_cast<PrivateProperty*>(listofcells[34])->getnumberofshops();
+		numhotels += static_cast<PrivateProperty*>(listofcells[34])->getnumberofhotels();
 	}
 }
 #endif

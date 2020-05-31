@@ -2,7 +2,6 @@
 #include<string>
 #include<stdint.h>
 
-struct DrawnCard { int id; std::string message; };
 
 class Card {
 	uint32_t type; // 0 for Chest, 1 for Chance
