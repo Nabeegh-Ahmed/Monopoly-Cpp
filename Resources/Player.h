@@ -7,6 +7,7 @@
 #include <SFML/Graphics.hpp>
 class Player {
 private:
+	bool bankrupt;
 	int playerID;
 	int oncellnumber;
 	int balance;
@@ -24,12 +25,15 @@ public:
 	void drawplayer(sf::RenderWindow& window);
 	/*void moveplayer(int diceroll, sf::RenderWindow& window);*/
 	sf::Vector2f getplayercoordinates();
+	~Player();
 	void setplayercoordinates(sf::Vector2f playercoordinates);
 	void setcurrentcell(int currentlyoncell);
 	void addpropertyID(int ID);
 	bool operator[](int index);
 	void removepropertyID(int ID);
 	bool ownallstations();
+	void setbankruptflag(bool flag);
+	bool getbankruptflag();
 	bool ownallutilities();
 	void gainGOJFcard();
 	bool removeGOJFcard();
@@ -49,6 +53,7 @@ public:
 };
 
 Player::Player() {
+	bankrupt = 0;
 	turnsinjail = 0;
 	GOJFcards = 0;
 	static int incrementer = 1;
@@ -88,6 +93,11 @@ Player::Player() {
 	playertopleftcoordinates = sf::Vector2f(coordx, coordy);
 	oncellnumber = 1;
 	incrementer++;
+}
+Player::~Player() {
+	if (propertiesownedlist != 0) {
+		delete[]propertiesownedlist;
+	}
 }
 void Player::drawplayer(sf::RenderWindow& window) {
 	window.draw(this->playershape);
@@ -331,5 +341,11 @@ bool Player::removeGOJFcard() {
 }
 int Player::getGOJFcard() {
 	return this->GOJFcards;
+}
+void Player::setbankruptflag(bool flag) {
+	this->bankrupt = flag;
+}
+bool Player::getbankruptflag() {
+	return this->bankrupt;
 }
 #endif

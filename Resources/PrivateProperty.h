@@ -213,5 +213,14 @@ public:
 		}
 		return -1;
 	}
+	void sethouses(int num) {
+		this->numberofhouses = num;
+	}
+	void setshops(int num) {
+		this->numberofshops = num;
+	}
+	void sethotels(int num) {
+		this->numberofhotels = num;
+	}
 };
 #endif
