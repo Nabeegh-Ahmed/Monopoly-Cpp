@@ -51,6 +51,9 @@ public:
 	sf::RectangleShape& getplayershape();
 	bool propertyowned(int propertyID);
 	int getPlayerID();
+	int getnumberofpropertiesowned();
+	int* getPropertyIDlist();
+	
 };
 
 Player::Player() {
@@ -95,6 +98,8 @@ Player::Player() {
 	oncellnumber = 1;
 	incrementer++;
 }
+int Player::getnumberofpropertiesowned() { return this->numberofpropertiesowned; }
+int* Player::getPropertyIDlist() { return this->propertiesownedlist; }
 
 int Player::getPlayerID() {
 	return this->playerID;
