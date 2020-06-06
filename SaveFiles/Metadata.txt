@@ -1,0 +1,8 @@
+Index in the lisofplayers array
+balance
+1 for not bankrupt and 0 for bankrupt
+currently on cell
+Get out of Jail cards
+number of properties owned
+n lines for ids of owned properties
+player coordinates
