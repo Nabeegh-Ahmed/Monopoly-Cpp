@@ -65,19 +65,23 @@ public:
 	void endturn(sf::RenderWindow& window);
 	//--------------Bankruptcy system
 	void bankruptcyinitiated(sf::RenderWindow& window, int idtoowemoney, int amountowed);
-	void changethispropsowner(int playerIDtoremovefrom,int playeridtoaddto, int propID);
+	void changethispropsowner(int playerIDtoremovefrom, int playeridtoaddto, int propID);
 	int convertpropIDtocellnumber(int propID);
 	//-----------------------------------Community and Chance
 	void drawcardforchanceorcomm(sf::RenderWindow& window, std::string message, bool ischance);
 	void getplayershousehotelshopamount(int& numhouses, int& numshops, int& numhotels);
 	//---------------------------------------------------- Go and Jail
-	void gotojail(sf::RenderWindow & window);
+	void gotojail(sf::RenderWindow& window);
 	bool yesnopopup(sf::RenderWindow& window, std::string message);
 	void passedgo();
 	//-------------------------------------------
 	void addcells();
 	void rungame();
 	friend class Player;
+	// Auction and Buy thingies
+	void buyPropertyCard(int propertyID, sf::RenderWindow& window, int& celltoreturn, bool& ispublicprop, bool bought);
+	bool PurchaseProperty(sf::RenderWindow& window, int PropertyID, bool isPublicProp);
+	void Auction(sf::RenderWindow& window, int PropertyID);
 };
 
 Board::Board() {
@@ -99,7 +103,7 @@ void Board::rungame() {
 	window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
 	screenview.setSize(sf::Vector2f(1280, 1024));
 	screenview.zoom(1.025f);
-	
+
 	sf::Event event;
 
 	while (window.isOpen())
@@ -117,35 +121,37 @@ void Board::rungame() {
 			case sf::Event::Closed:
 				window.close();
 				break;
-			case sf::Event::KeyPressed:
-				
-				if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-					screenview.zoom(0.9f);
+				if (PlayStarted) {
+					case sf::Event::KeyPressed:
+
+						if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+							screenview.zoom(0.9f);
+						}
+						if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+							screenview.zoom(1.1f);
+						}
+						if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
+							this->moveplayermechanicandgraphic(window);
+						}
+						if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+							this->endturn(window);
+						}
+						if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
+							this->upgradesystem(window);
+						}
+						if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) {
+							this->gotojail(window);
+						}
+						if (sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
+							this->moveplayerprocess(window, true);
+						}
+						if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
+							this->processlandedncell(window);
+						}
+						break;
 				}
-				if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-					screenview.zoom(1.1f);
-				}
-				if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
-					this->moveplayermechanicandgraphic(window);
-				}
-				if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
-					this->endturn(window);
-				}
-				if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
-					this->upgradesystem(window);
-				}
-				if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) {
-					this->gotojail(window);
-				}
-				if (sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
-					this->moveplayerprocess(window,true);
-				}
-				if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
-					this->processlandedncell(window);
-				}
-				break;
 			}
-			
+
 
 			if (PlayStarted) {
 				window.setView(screenview);
@@ -159,8 +165,8 @@ void Board::rungame() {
 				}
 				updatehighestnumofupgrades();
 			}
-			
-			
+
+
 			window.clear(sf::Color::White);
 			if (PlayStarted) {
 				this->drawboard(window);
@@ -184,12 +190,14 @@ void Board::addplayers() {
 	for (int i = 0; i < this->numberofplayers; i++) {
 		this->listofplayers[i] = new Player;
 	}
+	/*
 	for (int i = 1; i < 19; i++) {
 		listofplayers[0][0].addpropertyID(i);
 	}
 	for (int i = 20; i <= 28; i++) {
 		listofplayers[1][0].addpropertyID(i);
 	}
+	*/
 }
 void Board::addcells() {
 	listofcells = new Cell * [41];
@@ -396,6 +404,465 @@ void Board::drawplayers(sf::RenderWindow& window) {
 		}
 	}
 }
+void Board::buyPropertyCard(int propertyID, sf::RenderWindow& window, int& cellnumtoreturn, bool& ispublicprop, bool bought) {
+	int cellnumber = -1;
+	bool publicprop = true;
+	if (propertyID != -1) {
+		sf::RectangleShape propertyshape(sf::Vector2f(330, 500));
+		publicprop = false;
+		sf::RectangleShape topbar(sf::Vector2f(330, 80));
+		sf::RectangleShape icon(sf::Vector2f(80, 80));
+		sf::Image iconimage;
+		sf::Texture icongraphic;
+		sf::Font font;
+		sf::Text text;
+		font.loadFromFile("assets/TimesNew.ttf");
+		text.setFont(font);
+		text.setFillColor(sf::Color::White);
+		text.setPosition(105, 102);
+		text.setStyle(sf::Text::Bold);
+		text.setOutlineThickness(0.5);
+		text.setOutlineColor(sf::Color::Black);
+		text.setCharacterSize(35);
+		propertyshape.setFillColor(sf::Color::White);
+		propertyshape.setOutlineThickness(2);
+		propertyshape.setOutlineColor(sf::Color::Black);
+		propertyshape.setPosition(100, 100);
+		topbar.setPosition(100, 100);
+		switch (propertyID) {
+		case 1:
+			cellnumber = 1;
+			topbar.setFillColor(sf::Color::Color(166, 83, 32));
+			text.setString("Johar Town A");
+			break;
+		case 3:
+			cellnumber = 3;
+			topbar.setFillColor(sf::Color::Color(166, 83, 32));
+			text.setString("Johar Town B");
+			break;
+		case 5:
+			cellnumber = 5;
+			topbar.setFillColor(sf::Color::Color(61, 68, 76));
+			text.setString("Bus Station");
+			iconimage.loadFromFile("assets/upgrade/Public.png");
+			publicprop = true;
+			break;
+		case 6:
+			cellnumber = 6;
+			topbar.setFillColor(sf::Color::Color(9, 96, 172));
+			text.setString("Iqbal Town A");
+			break;
+		case 8:
+			cellnumber = 8;
+			topbar.setFillColor(sf::Color::Color(9, 96, 172));
+			text.setString("Iqbal Town B");
+			break;
+		case 9:
+			cellnumber = 9;
+			topbar.setFillColor(sf::Color::Color(9, 96, 172));
+			text.setString("Iqbal Town C");
+			break;
+		case 11:
+			cellnumber = 11;
+			topbar.setFillColor(sf::Color::Color(240, 134, 8));
+			text.setString("Faisal Town A");
+			break;
+		case 12:
+			cellnumber = 12;
+			topbar.setFillColor(sf::Color::Color(148, 149, 153));
+			text.setString("SUI");
+			iconimage.loadFromFile("assets/upgrade/Utility.png");
+			publicprop = true;
+			break;
+		case 13:
+			cellnumber = 13;
+			topbar.setFillColor(sf::Color::Color(240, 134, 8));
+			text.setString("Faisal Town B");
+			break;
+		case 14:
+			cellnumber = 14;
+			topbar.setFillColor(sf::Color::Color(240, 134, 8));
+			text.setString("Faisal Town C");
+			break;
+		case 15:
+			cellnumber = 15;
+			topbar.setFillColor(sf::Color::Color(61, 68, 76));
+			text.setString("Metro Station");
+			iconimage.loadFromFile("assets/upgrade/Public.png");
+			publicprop = true;
+			break;
+		case 16:
+			cellnumber = 16;
+			topbar.setFillColor(sf::Color::Color(34, 24, 116));
+			text.setString("Model Town A");
+			break;
+		case 18:
+			cellnumber = 18;
+			topbar.setFillColor(sf::Color::Color(34, 24, 116));
+			text.setString("Model Town B");
+			break;
+		case 19:
+			cellnumber = 19;
+			topbar.setFillColor(sf::Color::Color(34, 24, 116));
+			text.setString("Model Town C");
+			break;
+		case 21:
+			cellnumber = 21;
+			topbar.setFillColor(sf::Color::Color(200, 202, 0));
+			text.setString("Gulberg II A");
+			break;
+		case 23:
+			cellnumber = 23;
+			topbar.setFillColor(sf::Color::Color(200, 202, 0));
+			text.setString("Gulberg II B");
+			break;
+		case 24:
+			cellnumber = 24;
+			topbar.setFillColor(sf::Color::Color(200, 202, 0));
+			text.setString("Gulberg II C");
+			break;
+		case 25:
+			cellnumber = 25;
+			topbar.setFillColor(sf::Color::Color(61, 68, 76));
+			text.setString("Orange Train");
+			iconimage.loadFromFile("assets/upgrade/Public.png");
+			publicprop = true;
+			break;
+		case 26:
+			cellnumber = 26;
+			topbar.setFillColor(sf::Color::Color(204, 62, 223));
+			text.setString("DHA A");
+			break;
+		case 27:
+			cellnumber = 27;
+			topbar.setFillColor(sf::Color::Color(204, 62, 223));
+			text.setString("DHA B");
+			break;
+		case 28:
+			cellnumber = 28;
+			topbar.setFillColor(sf::Color::Color(148, 149, 153));
+			text.setString("WASA");
+			iconimage.loadFromFile("assets/upgrade/Utility.png");
+			publicprop = true;
+			break;
+		case 29:
+			cellnumber = 29;
+			topbar.setFillColor(sf::Color::Color(204, 62, 223));
+			text.setString("DHA Y");
+			break;
+		case 31:
+			cellnumber = 31;
+			topbar.setFillColor(sf::Color::Color(1, 150, 48));
+			text.setString("Bahria Town A");
+			break;
+		case 33:
+			cellnumber = 33;
+			topbar.setFillColor(sf::Color::Color(1, 150, 48));
+			text.setString("Bahria Town B");
+			break;
+		case 34:
+			cellnumber = 34;
+			topbar.setFillColor(sf::Color::Color(1, 150, 48));
+			text.setString("Bahria Town C");
+			break;
+		case 35:
+			cellnumber = 35;
+			topbar.setFillColor(sf::Color::Color(61, 68, 76));
+			text.setString("Railway Station");
+			iconimage.loadFromFile("assets/upgrade/Public.png");
+			publicprop = true;
+			break;
+		case 37:
+			cellnumber = 37;
+			topbar.setFillColor(sf::Color::Color(148, 149, 153));
+			text.setString("LESCO");
+			iconimage.loadFromFile("assets/upgrade/Utility.png");
+			publicprop = true;
+			break;
+		case 39:
+			cellnumber = 39;
+			topbar.setFillColor(sf::Color::Color(148, 149, 153));
+			text.setString("PTCL");
+			iconimage.loadFromFile("assets/upgrade/Utility.png");
+			publicprop = true;
+			break;
+		}
+		this->drawstaticpanel(window);
+		window.draw(propertyshape);
+		window.draw(topbar);
+		window.draw(text);
+		text.setCharacterSize(25);
+		text.setFillColor(sf::Color::Black);
+		text.setOutlineColor(sf::Color::White);
+		text.setPosition(105, 175);
+		text.setString("Rent Amount:");
+		window.draw(text);
+		if (publicprop == true) {
+			text.setString(std::to_string(static_cast<PublicProperty*>(listofcells[cellnumber])->getRentpublic()) + " PKR");
+		}
+		else {
+			if (this->listofplayers[thisplayersturn][0].playerownsallofthisprivategroup(propertyID)) {
+				if (static_cast<PrivateProperty*>(listofcells[cellnumber])->getanyupgrades()) {
+					text.setString(std::to_string(static_cast<PrivateProperty*>(listofcells[cellnumber])->getprivaterent()) + " PKR");
+				}
+				else {
+					text.setString(std::to_string(static_cast<PrivateProperty*>(listofcells[cellnumber])->getprivaterent() * 2) + " PKR");
+				}
+			}
+			else {
+				text.setString(std::to_string(static_cast<PrivateProperty*>(listofcells[cellnumber])->getprivaterent()) + " PKR");
+			}
+		}
+		text.setPosition(295, 175);
+		window.draw(text);
+		text.setString("Mortgage Value:");
+		text.setPosition(105, 205);
+		window.draw(text);
+		text.setString(std::to_string(static_cast<Property*>(listofcells[cellnumber])->getMortgage()) + " PKR");
+		text.setPosition(295, 205);
+		window.draw(text);
+		text.setString("Purchase Price:");
+		text.setPosition(105, 235);
+		window.draw(text);
+		text.setString(std::to_string(static_cast<Property*>(listofcells[cellnumber])->getPrice()) + " PKR");
+		text.setPosition(295, 235);
+		window.draw(text);
+		if (publicprop) {
+			text.setString("Double Rent:");
+			text.setPosition(105, 265);
+			window.draw(text);
+			bool flag = static_cast<PublicProperty*>(listofcells[cellnumber])->getDoubleRent();
+			if (flag) {
+				text.setString("Yes");
+			}
+			else {
+				text.setString("No");
+			}
+			text.setPosition(295, 265);
+			window.draw(text);
+			icongraphic.loadFromImage(iconimage);
+			icon.setTexture(&icongraphic);
+			icon.setPosition(350, 100);
+			window.draw(icon);
+		}
+		else {
+			iconimage.loadFromFile("assets/upgrade/property-icon.png");
+			icongraphic.loadFromImage(iconimage);
+			icon.setTexture(&icongraphic);
+			icon.setPosition(350, 100);
+			window.draw(icon);
+		}
+		icon.setTexture(0);
+		icon.setSize(sf::Vector2f(120, 50));
+		icon.setOutlineColor(sf::Color::Black);
+		icon.setOutlineThickness(2);
+		icon.setPosition(310, 550);
+		window.draw(icon);
+		if (static_cast<Property*>(listofcells[cellnumber])->getmortgageflag() == false) {
+			if (bought) {
+				text.setString("Owned");
+				text.setCharacterSize(20);
+				text.setPosition(317, 560);
+			}
+			else {
+				text.setString("Purchase");
+				text.setCharacterSize(20);
+				text.setPosition(317, 560);
+			}
+
+			window.draw(text);
+			text.setCharacterSize(25);
+
+		}
+		window.display();
+	}
+	ispublicprop = publicprop;
+	cellnumtoreturn = cellnumber;
+}
+bool Board::PurchaseProperty(sf::RenderWindow& window, int propertyID, bool ispublicprop) {
+	sf::Event event;
+	sf::Vector2i mousecoords(0, 0);
+	bool exitflag = false;
+	bool playerBought = false;
+	
+	int sequenceofevents = 1;
+	int maincellnumber = -1;
+	int propertyIDselected = -1;
+	int upgradeselected = -1;
+	this->bringupgradepanel(window);
+	this->drawstaticpanel(window);
+	window.display();
+	propertyIDselected = propertyID;
+	bool owned;
+	while (!exitflag) {
+		if (static_cast<Property*>(listofcells[propertyID])->getPlayerID() != -1) {
+			owned = true;
+			playerBought = true;
+			buyPropertyCard(propertyIDselected, window, maincellnumber, ispublicprop, true);
+		}
+		else {
+			owned = false;
+			buyPropertyCard(propertyIDselected, window, maincellnumber, ispublicprop, false);
+		}
+		while (window.pollEvent(event)) {
+			switch (event.type) {
+			case sf::Event::MouseButtonPressed:
+				if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+					if (!owned) {
+						mousecoords = sf::Mouse::getPosition(window);
+						upgradeselected = whichoptionselectedcard(mousecoords);
+						if (upgradeselected == 10) {
+							this->listofplayers[thisplayersturn][0].addpropertyID(static_cast<Property*>(listofcells[propertyID])->getPropert_ID());
+							this->listofplayers[thisplayersturn]->withdrawcash(static_cast<Property*>(listofcells[propertyID])->getPrice());
+							static_cast<Property*>(listofcells[propertyID])->setPlayerID(this->listofplayers[thisplayersturn]->getPlayerID());
+							playerBought = true;
+						}
+					}
+					else {
+						playerBought = true;
+					}
+				}
+				if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+					exitflag = true;
+				}
+				break;
+			}
+		}
+	}
+	this->removeupgradepanel(window);
+	return playerBought;
+}
+void Board::Auction(sf::RenderWindow& window, int propertyID) {
+	sf::Event event;
+	sf::Vector2f mousecoords(0, 0);
+
+	bool exitFlag = false;
+
+	float AuctionCardWidth = this->numberofplayers * 200;
+
+	
+
+	sf::RectangleShape AuctionCard;
+	AuctionCard.setPosition(250, 222);
+	AuctionCard.setSize(sf::Vector2f(AuctionCardWidth, 400));
+	AuctionCard.setOutlineThickness(3);
+	AuctionCard.setFillColor(sf::Color::White);
+	AuctionCard.setOutlineColor(sf::Color::Black);
+
+	sf::RectangleShape* Call = new sf::RectangleShape[numberofplayers];
+	sf::RectangleShape* Fold = new sf::RectangleShape[numberofplayers];
+	sf::Text* CurrentBid = new sf::Text[numberofplayers];
+	bool* Folds = new bool[numberofplayers];
+
+	sf::Font font;
+	font.loadFromFile("assets/TimesNew.ttf");
+
+	sf::Text PlayerNumber;
+	PlayerNumber.setFont(font);
+	PlayerNumber.setString("Player ");
+	PlayerNumber.setFillColor(sf::Color::Black);
+
+	sf::Texture FoldTexture;
+	FoldTexture.loadFromFile("assets/auction/fold.png");
+
+	sf::Texture CallTexture;
+	CallTexture.loadFromFile("assets/auction/call.png");
+
+	sf::RectangleShape* AuctionSection = new sf::RectangleShape[numberofplayers];
+
+	std::string Price = "0";
+
+	for (int i = 0; i < numberofplayers; i++) {
+		Folds[i] = false;
+
+		AuctionSection[i].setPosition(250 + 200 * i, 222);
+		AuctionSection[i].setSize(sf::Vector2f(AuctionCardWidth / numberofplayers, 400));
+		AuctionSection[i].setOutlineThickness(3);
+		AuctionSection[i].setFillColor(sf::Color::White);
+		AuctionSection[i].setOutlineColor(sf::Color::Black);
+
+		Call[i].setPosition(280 + 200 * i, 480);
+		Call[i].setSize(sf::Vector2f(130, 50));
+		Call[i].setTexture(&CallTexture);
+
+		Fold[i].setPosition(280 + 200 * i, 550);
+		Fold[i].setSize(sf::Vector2f(130, 50));
+		Fold[i].setTexture(&FoldTexture);
+
+		CurrentBid[i].setFont(font);
+		CurrentBid[i].setString(Price);
+		CurrentBid[i].setPosition(330 + 200 * i, 350);
+		CurrentBid[i].setFillColor(sf::Color::Black);
+	}
+
+
+	while (!exitFlag) {
+		mousecoords.x = sf::Mouse::getPosition(window).x;
+		mousecoords.y = sf::Mouse::getPosition(window).y;
+		while (window.pollEvent(event)) {
+			int foldCount = 0;
+			int maxBidPlayer = 0;
+			int maxBid = 0;
+
+			for (int i = 0; i < numberofplayers; i++) { if (Folds[i]) { foldCount++; } }
+			if (foldCount == numberofplayers - 1) {
+
+				for (int i = 0; i < numberofplayers; i++) {
+					std::string PlayerBid = CurrentBid[i].getString();
+					if (std::stoi(PlayerBid) > maxBid) {
+						maxBid = std::stoi(PlayerBid);
+						maxBidPlayer = i;
+					}
+				}
+
+				listofplayers[maxBidPlayer]->withdrawcash(maxBid);
+				listofplayers[maxBidPlayer]->addpropertyID(static_cast<Property*>(listofcells[propertyID])->getPropert_ID());
+				static_cast<Property*>(listofcells[propertyID])->setPlayerID(this->listofplayers[maxBidPlayer]->getPlayerID());
+				exitFlag = true;
+
+			}
+			switch (event.type) {
+			case sf::Event::MouseButtonPressed:
+
+
+				if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+					for (int i = 0; i < numberofplayers; i++) {
+
+						if (!Folds[i]) {
+							if (Call[i].getGlobalBounds().contains(mousecoords)) {
+								std::string currentBidPrice = CurrentBid[i].getString();
+								int newPrice = std::stoi(currentBidPrice) + 50;
+								if (newPrice <= listofplayers[i]->getbalance()) {
+									CurrentBid[i].setString(std::to_string(newPrice));
+								}
+							}
+						}
+
+						if (Fold[i].getGlobalBounds().contains(mousecoords)) {
+							Folds[i] = true;
+						}
+					}
+				}
+				break;
+			}
+		}
+
+		window.draw(AuctionCard);
+		for (int i = 0; i < numberofplayers; i++) {
+			window.draw(AuctionSection[i]);
+			window.draw(Fold[i]);
+			window.draw(Call[i]);
+			window.draw(CurrentBid[i]);
+			
+			PlayerNumber.setString(PlayerNumber.getString() + std::to_string(i + 1));
+			PlayerNumber.setPosition(300 + 200 * i, 300);
+			window.draw(PlayerNumber);
+			PlayerNumber.setString("Player ");	
+		}
+
+		window.display();
+	}
+}
 void Board::spectatecurrentplayer(sf::RenderWindow& window) {
 	screenview.setCenter(this->listofplayers[this->thisplayersturn][0].getplayercoordinates());
 	window.setView(screenview);
@@ -490,7 +957,7 @@ void Board::moveplayermechanicandgraphic(sf::RenderWindow& window) {
 			}
 		}
 		for (int i = 0; i < roll; i++) {
-			this->moveplayerprocess(window,true);
+			this->moveplayerprocess(window, true);
 			if (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() == 1) {
 				passedgo();
 			}
@@ -498,7 +965,7 @@ void Board::moveplayermechanicandgraphic(sf::RenderWindow& window) {
 	}
 	else {
 		this->listofplayers[thisplayersturn][0].spendturninjail();
-		if (this->yesnopopup(window,"Press Left Click to (Pay 400PKR Fee/Use GOJF card) to get released or Right Click to not do so")) {
+		if (this->yesnopopup(window, "Press Left Click to (Pay 400PKR Fee/Use GOJF card) to get released or Right Click to not do so")) {
 			if (this->listofplayers[thisplayersturn][0].removeGOJFcard()) {
 				this->listofplayers[thisplayersturn][0].setturnsinjail(0);
 				this->yesnopopup(window, "You have used 1 GOJF card, Proceed with turn");
@@ -510,7 +977,7 @@ void Board::moveplayermechanicandgraphic(sf::RenderWindow& window) {
 					this->yesnopopup(window, "You have payed 400PKR, Proceed with turn");
 					this->moveplayermechanicandgraphic(window);
 				}
-				else{
+				else {
 					this->yesnopopup(window, "You possess neither GOJF cards, nor enough cash");
 				}
 			}
@@ -524,7 +991,7 @@ void Board::moveplayermechanicandgraphic(sf::RenderWindow& window) {
 		}
 	}
 }
-void Board::endturn(sf::RenderWindow & window) {
+void Board::endturn(sf::RenderWindow& window) {
 	this->thisplayersturn++;
 	if (this->thisplayersturn >= numberofplayers) {
 		this->thisplayersturn = 0;
@@ -540,62 +1007,62 @@ void Board::endturn(sf::RenderWindow & window) {
 	}
 }
 void Board::upgradesystem(sf::RenderWindow& window) {
-		sf::Event event;
-		sf::Vector2i mousecoords(0, 0);
-		bool exitflag = false;
-		bool ispublicprop = false;
-		int sequenceofevents = 1;
-		int maincellnumber = -1;
-		int propertyIDselected = -1;
-		int upgradeselected = -1;
-		this->bringupgradepanel(window);
-		this->drawstaticpanel(window);
-		window.display();
-		while (!exitflag) {
-			while (window.pollEvent(event)) {
-				switch (event.type) {
-				case sf::Event::MouseButtonPressed:
-					if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-						mousecoords = sf::Mouse::getPosition(window);
-						switch (sequenceofevents) {
-						case 1:
-							propertyIDselected = whichpropertyselectedmouse(mousecoords);
-							exhibitpropertycard(propertyIDselected, maincellnumber, ispublicprop, window);
-							if (propertyIDselected != -1) { sequenceofevents++; }
-							break;
-						case 2:
-							upgradeselected = whichoptionselectedcard(mousecoords);
-							updatehighestnumofupgrades();
-							upgradebuttonprocessing(upgradeselected, propertyIDselected, maincellnumber, ispublicprop, window);
-							updatehighestnumofupgrades();
-							exhibitpropertycard(propertyIDselected, maincellnumber, ispublicprop, window);
-							if (upgradeselected != -1) {}
-							break;
-						}
+	sf::Event event;
+	sf::Vector2i mousecoords(0, 0);
+	bool exitflag = false;
+	bool ispublicprop = false;
+	int sequenceofevents = 1;
+	int maincellnumber = -1;
+	int propertyIDselected = -1;
+	int upgradeselected = -1;
+	this->bringupgradepanel(window);
+	this->drawstaticpanel(window);
+	window.display();
+	while (!exitflag) {
+		while (window.pollEvent(event)) {
+			switch (event.type) {
+			case sf::Event::MouseButtonPressed:
+				if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+					mousecoords = sf::Mouse::getPosition(window);
+					switch (sequenceofevents) {
+					case 1:
+						propertyIDselected = whichpropertyselectedmouse(mousecoords);
+						exhibitpropertycard(propertyIDselected, maincellnumber, ispublicprop, window);
+						if (propertyIDselected != -1) { sequenceofevents++; }
+						break;
+					case 2:
+						upgradeselected = whichoptionselectedcard(mousecoords);
+						updatehighestnumofupgrades();
+						upgradebuttonprocessing(upgradeselected, propertyIDselected, maincellnumber, ispublicprop, window);
+						updatehighestnumofupgrades();
+						exhibitpropertycard(propertyIDselected, maincellnumber, ispublicprop, window);
+						if (upgradeselected != -1) {}
+						break;
 					}
-					if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
-						sequenceofevents--;
-						switch (sequenceofevents) {
-						case 0:
-							exitflag = true;
-							break;
-						case 1:
-							this->drawstaticpanel(window);
-							window.display();
-							break;
-						}
-					}
-					break;
-				case sf::Event::KeyPressed:
-					if (sf::Keyboard::isKeyPressed(sf::Keyboard::B)) {
-						this->listofplayers[thisplayersturn][0].setbankruptflag(1);
-					}
-					exitflag = true;
-					break;
 				}
+				if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+					sequenceofevents--;
+					switch (sequenceofevents) {
+					case 0:
+						exitflag = true;
+						break;
+					case 1:
+						this->drawstaticpanel(window);
+						window.display();
+						break;
+					}
+				}
+				break;
+			case sf::Event::KeyPressed:
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::B)) {
+					this->listofplayers[thisplayersturn][0].setbankruptflag(1);
+				}
+				exitflag = true;
+				break;
 			}
 		}
-		this->removeupgradepanel(window);
+	}
+	this->removeupgradepanel(window);
 }
 void Board::bringupgradepanel(sf::RenderWindow& window) {
 	float amounttoshiftx = -72.5;
@@ -1638,14 +2105,14 @@ void Board::updatehighestnumofupgrades() {
 	static_cast<PrivateProperty*>(listofcells[33])->updatehighest();
 	static_cast<PrivateProperty*>(listofcells[34])->updatehighest();
 }
-void Board::gotojail(sf::RenderWindow & window) {
+void Board::gotojail(sf::RenderWindow& window) {
 	this->listofplayers[thisplayersturn][0].setturnsinjail(2);
 	while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 11) {
-		this->moveplayerprocess(window,true);
+		this->moveplayerprocess(window, true);
 	}
 }
 bool Board::yesnopopup(sf::RenderWindow& window, std::string message) {
-	sf::RectangleShape messageboard(sf::Vector2f(message.length()*11.5,75));
+	sf::RectangleShape messageboard(sf::Vector2f(message.length() * 11.5, 75));
 	sf::Font font;
 	sf::Text text;
 	sf::Event event;
@@ -1658,7 +2125,7 @@ bool Board::yesnopopup(sf::RenderWindow& window, std::string message) {
 	text.setOutlineColor(sf::Color::Black);
 	text.setCharacterSize(20);
 	text.setString(message);
-	messageboard.setPosition(20,700 );
+	messageboard.setPosition(20, 700);
 	text.setPosition(30, 710);
 	messageboard.setFillColor(sf::Color::Color(65, 73, 80));
 	messageboard.setOutlineThickness(3);
@@ -1692,7 +2159,7 @@ void Board::passedgo() {
 		listofplayers[thisplayersturn][0].depositcash(500);
 	}
 }
-void Board::processlandedncell(sf::RenderWindow & window) {
+void Board::processlandedncell(sf::RenderWindow& window) {
 	int c = this->listofplayers[thisplayersturn][0].getcurrentlyoncell();
 	bool ispublic = false, isprivate = false;
 	bool privateprophit = false;
@@ -1738,7 +2205,7 @@ void Board::processlandedncell(sf::RenderWindow & window) {
 		}
 		if (purchasedflag) {
 			if (playerIDholder != thisplayersturn) {
-				if (this->listofplayers[playerIDholder][0].playerownsallofthisprivategroup(static_cast<Property*>(listofcells[c-1])->getPropert_ID())) {
+				if (this->listofplayers[playerIDholder][0].playerownsallofthisprivategroup(static_cast<Property*>(listofcells[c - 1])->getPropert_ID())) {
 					if (static_cast<PrivateProperty*>(listofcells[c - 1])->getanyupgrades()) {
 						sumtopay = static_cast<PrivateProperty*>(listofcells[c - 1])->getprivaterent();
 					}
@@ -1768,14 +2235,24 @@ void Board::processlandedncell(sf::RenderWindow & window) {
 			}
 		}
 		else {
-			//ADD PURCHASE SYSTEM
+			int PropertyCells[28] = { 1,3,5,6,8,9,11,12,13,14,15,16,18,19,21,23,24,25,26,27,28,29,31,33,34,35,37,39 };
+			for (int i = 0; i < 28; i++) {
+				if (listofplayers[thisplayersturn]->getcurrentlyoncell() - 1 == PropertyCells[i]) {
+					if (!PurchaseProperty(window, listofplayers[thisplayersturn]->getcurrentlyoncell() - 1, false)) {
+						Auction(window, listofplayers[thisplayersturn]->getcurrentlyoncell() - 1);
+					}
+					break;
+				}
+			}
 		}
 	}
 	//Private---------------------------
-	if (c == 6 || c == 16 || c == 26 || c == 36) {//Public stations
+	if (c == 6 || c == 16 || c == 26 || c == 36) {
+		//Public stations
 		publicprophit = true;
 	}
-	if (c == 13 || c == 29 || c == 38 || c == 40) {//Public utility
+	if (c == 13 || c == 29 || c == 38 || c == 40) {
+		//Public utility
 		publicprophit = true;
 	}
 	if (publicprophit) {
@@ -1811,16 +2288,25 @@ void Board::processlandedncell(sf::RenderWindow & window) {
 			}
 		}
 		else {
-			//ADD PURCHASE SYSTEM
+			int PropertyCells[28] = { 1,3,5,6,8,9,11,12,13,14,15,16,18,19,21,23,24,25,26,27,28,29,31,33,34,35,37,39 };
+			for (int i = 0; i < 28; i++) {
+				if (listofplayers[thisplayersturn]->getcurrentlyoncell() - 1 == PropertyCells[i]) {
+					if (!PurchaseProperty(window, listofplayers[thisplayersturn]->getcurrentlyoncell() - 1, true)) {
+						Auction(window, listofplayers[thisplayersturn]->getcurrentlyoncell() - 1);
+					}
+					break;
+				}
+			}
 		}
 	}
-	if (c == 3 || c == 18 || c == 33) {//Community
+	if (c == 3 || c == 18 || c == 33) {
+		//Community
 		DrawnCard gotthiscard = static_cast<Chest*>(listofcells[c - 1])->getrandomcard();
-		drawcardforchanceorcomm(window, gotthiscard.message,false);
+		drawcardforchanceorcomm(window, gotthiscard.message, false);
 		switch (gotthiscard.id) {
 		case 1:
 			while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 1) {
-				this->moveplayerprocess(window,true);
+				this->moveplayerprocess(window, true);
 			}
 			this->listofplayers[thisplayersturn][0].depositcash(400);
 			break;
@@ -1903,10 +2389,10 @@ void Board::processlandedncell(sf::RenderWindow & window) {
 			this->processlandedncell(window);
 			break;
 		case 3:
-			while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 13 && this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 29 && this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 38&& this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 40) {
+			while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 13 && this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 29 && this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 38 && this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != 40) {
 				this->moveplayerprocess(window, true);
 			}
-			propIDholder = static_cast<Property*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell()-1])->getPropert_ID();
+			propIDholder = static_cast<Property*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getPropert_ID();
 			for (int i = 0; i < numberofplayers; i++) {
 				if (this->listofplayers[i] != 0) {
 					if (this->listofplayers[i][0].propertyowned(propIDholder)) {
@@ -1918,7 +2404,7 @@ void Board::processlandedncell(sf::RenderWindow & window) {
 			}
 			if (purchasedflag) {
 				if (playerIDholder != thisplayersturn) {
-					if (!(this->listofplayers[thisplayersturn][0].withdrawcash(static_cast<PublicProperty*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getRentpublic()*gamedice.getamountrolled()))) {
+					if (!(this->listofplayers[thisplayersturn][0].withdrawcash(static_cast<PublicProperty*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getRentpublic()* gamedice.getamountrolled()))) {
 						bankruptcyinitiated(window, playerIDholder, static_cast<PublicProperty*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getRentpublic()* gamedice.getamountrolled());
 					}
 					else {
@@ -1946,11 +2432,11 @@ void Board::processlandedncell(sf::RenderWindow & window) {
 			}
 			if (purchasedflag) {
 				if (playerIDholder != thisplayersturn) {
-					if (!(this->listofplayers[thisplayersturn][0].withdrawcash(static_cast<PublicProperty*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getRentpublic() *2))) {
+					if (!(this->listofplayers[thisplayersturn][0].withdrawcash(static_cast<PublicProperty*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getRentpublic() * 2))) {
 						bankruptcyinitiated(window, playerIDholder, static_cast<PublicProperty*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getRentpublic() * 2);
 					}
 					else {
-						this->listofplayers[playerIDholder][0].depositcash(static_cast<PublicProperty*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getRentpublic()*2);
+						this->listofplayers[playerIDholder][0].depositcash(static_cast<PublicProperty*>(listofcells[listofplayers[thisplayersturn][0].getcurrentlyoncell() - 1])->getRentpublic() * 2);
 					}
 				}
 			}
@@ -2002,7 +2488,7 @@ void Board::processlandedncell(sf::RenderWindow & window) {
 			this->listofplayers[thisplayersturn][0].gainGOJFcard();
 			break;
 		case 9:
-			numholder = listofplayers[thisplayersturn][0].getcurrentlyoncell()-4;
+			numholder = listofplayers[thisplayersturn][0].getcurrentlyoncell() - 4;
 			while (this->listofplayers[thisplayersturn][0].getcurrentlyoncell() != numholder) {
 				this->moveplayerprocess(window, false);
 			}
@@ -2075,7 +2561,7 @@ void Board::processlandedncell(sf::RenderWindow & window) {
 			if (i == 26 || i == 27 || i == 29) {
 				isprivate = true;
 			}
-			if (i == 31 || i == 33 ||  i == 34) {
+			if (i == 31 || i == 33 || i == 34) {
 				isprivate = true;
 			}
 			if (i == 5 || i == 15 || i == 25 || i == 35) {
@@ -2090,7 +2576,7 @@ void Board::processlandedncell(sf::RenderWindow & window) {
 						sumtopay += static_cast<PrivateProperty*>(listofcells[i])->getPrice();
 					}
 					if (ispublic) {
-						sumtopay+= static_cast<PublicProperty*>(listofcells[i])->getPrice();
+						sumtopay += static_cast<PublicProperty*>(listofcells[i])->getPrice();
 					}
 				}
 			}
@@ -2173,7 +2659,7 @@ void Board::processlandedncell(sf::RenderWindow & window) {
 		this->gotojail(window);
 	}
 }
-void Board::drawcardforchanceorcomm(sf::RenderWindow& window, std::string message, bool ischance){
+void Board::drawcardforchanceorcomm(sf::RenderWindow& window, std::string message, bool ischance) {
 	sf::RectangleShape messageboard(sf::Vector2f(message.length() * 12, 75));
 	sf::Font font;
 	sf::Text text;
@@ -2304,7 +2790,7 @@ void Board::getplayershousehotelshopamount(int& numhouses, int& numshops, int& n
 	}
 }
 void Board::bankruptcyinitiated(sf::RenderWindow& window, int idtoowemoney, int amountowed) {
-	while (this->listofplayers[thisplayersturn][0].getbankruptflag() == false && this->listofplayers[thisplayersturn][0].withdrawcash(amountowed)==false) {
+	while (this->listofplayers[thisplayersturn][0].getbankruptflag() == false && this->listofplayers[thisplayersturn][0].withdrawcash(amountowed) == false) {
 		yesnopopup(window, "You are unable to pay " + std::to_string(amountowed) + " PKR, Mortgage to muster funds or commit bankruptcy");
 		upgradesystem(window);
 	}
@@ -2316,14 +2802,14 @@ void Board::bankruptcyinitiated(sf::RenderWindow& window, int idtoowemoney, int 
 		int propidlist[28] = {};
 		int numberofpropstransferred = 0;
 		if (thisplayersturn != idtoowemoney) {
-			yesnopopup(window, "Transfering any liquid assets to owed Player " + std::to_string(idtoowemoney) +", Received: " + std::to_string(this->listofplayers[thisplayersturn][0].getbalance())+" PKR");
+			yesnopopup(window, "Transfering any liquid assets to owed Player " + std::to_string(idtoowemoney) + ", Received: " + std::to_string(this->listofplayers[thisplayersturn][0].getbalance()) + " PKR");
 			this->listofplayers[idtoowemoney][0].depositcash(this->listofplayers[thisplayersturn][0].getbalance());
 		}
 		else {
 			yesnopopup(window, "Transfering any liquid assets to Bank");
 		}
 		if (thisplayersturn != idtoowemoney) {
-			yesnopopup(window, "Transfering Properties to owed Player "+std::to_string(idtoowemoney));
+			yesnopopup(window, "Transfering Properties to owed Player " + std::to_string(idtoowemoney));
 		}
 		else {
 			yesnopopup(window, "Transfering Properties to Bank, available for purchase");
@@ -2334,7 +2820,7 @@ void Board::bankruptcyinitiated(sf::RenderWindow& window, int idtoowemoney, int 
 				if (static_cast<Property*>(listofcells[cellnumber])->getmortgageflag()) {
 					sumtopay = static_cast<Property*>(listofcells[cellnumber])->getMortgage();
 					if (cellnumber == 5 || cellnumber == 15 || cellnumber == 25 || cellnumber == 35) {
-						isprivate =false;
+						isprivate = false;
 					}
 					else {
 						isprivate = true;
@@ -2406,7 +2892,7 @@ void Board::bankruptcyinitiated(sf::RenderWindow& window, int idtoowemoney, int 
 		else {
 			//Do nothing as bank was owed
 		}
-		yesnopopup(window,"Successfully dodged bankruptcy, payment of "+ std::to_string(amountowed)+" PKR made");
+		yesnopopup(window, "Successfully dodged bankruptcy, payment of " + std::to_string(amountowed) + " PKR made");
 	}
 }
 void Board::changethispropsowner(int playerIDtoremovefrom, int playeridtoaddto, int propID) {

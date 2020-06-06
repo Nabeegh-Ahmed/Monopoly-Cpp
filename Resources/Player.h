@@ -50,6 +50,7 @@ public:
 	bool playerownsallofthisprivategroup(int propertyID);
 	sf::RectangleShape& getplayershape();
 	bool propertyowned(int propertyID);
+	int getPlayerID();
 };
 
 Player::Player() {
@@ -94,6 +95,11 @@ Player::Player() {
 	oncellnumber = 1;
 	incrementer++;
 }
+
+int Player::getPlayerID() {
+	return this->playerID;
+}
+
 Player::~Player() {
 	if (propertiesownedlist != 0) {
 		delete[]propertiesownedlist;
@@ -153,7 +159,7 @@ void Player::removepropertyID(int ID) {
 			for (int i = 0; i < numberofpropertiesowned; i++) {
 				tempIDholder[i] = 0;
 			}
-			for (int i = 0,k=0; i < numberofpropertiesowned + 1; i++) {
+			for (int i = 0, k = 0; i < numberofpropertiesowned + 1; i++) {
 				if (propertiesownedlist[i] == ID) {
 				}
 				else {
@@ -201,7 +207,7 @@ bool Player::propertyowned(int propertyID) {
 bool Player::ownallstations() {
 	int counter = 0;
 	for (int i = 0; i < numberofpropertiesowned; i++) {
-		if (propertiesownedlist[i] == 3|| propertiesownedlist[i] == 11|| propertiesownedlist[i] == 18|| propertiesownedlist[i] == 26) {
+		if (propertiesownedlist[i] == 3 || propertiesownedlist[i] == 11 || propertiesownedlist[i] == 18 || propertiesownedlist[i] == 26) {
 			counter++;
 		}
 	}
@@ -292,7 +298,7 @@ bool Player::playerownsallofthisprivategroup(int propertyID) {
 	if (propertyID == (1) || propertyID == (2)) {
 		return listofgroups[0];
 	}
-	if (propertyID==(4) || propertyID == (5) || propertyID == (6)) {
+	if (propertyID == (4) || propertyID == (5) || propertyID == (6)) {
 		return listofgroups[1];
 	}
 

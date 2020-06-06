@@ -148,9 +148,9 @@ public:
 			while (this->numberofhotels > 0) {
 				totalamountretreived += removehotel();
 			}
-			if (wifi) { totalamountretreived += (30 )/2; wifi = false; }
-			if (electricity) { totalamountretreived += (50 )/2; electricity = false; }
-			if (gas) { totalamountretreived += (50 )/2; gas = false; }
+			if (wifi) { totalamountretreived += (30) / 2; wifi = false; }
+			if (electricity) { totalamountretreived += (50) / 2; electricity = false; }
+			if (gas) { totalamountretreived += (50) / 2; gas = false; }
 			this->setmortgagedflag(1);
 			return totalamountretreived;
 		}

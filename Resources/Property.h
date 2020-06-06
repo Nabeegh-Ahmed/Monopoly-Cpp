@@ -34,4 +34,5 @@ public:
 	int getRent() { return rent; }
 	bool getmortgageflag() { return this->mortgaged; }
 	std::string getGroup() { return group; }
+	int getPlayerID() { return this->Player_ID; }
 };

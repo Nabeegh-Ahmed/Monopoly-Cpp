@@ -10,7 +10,7 @@ public:
 	void setDoubleRent(bool val) { this->doubleRent = val; }
 	bool getDoubleRent() { return this->doubleRent; }
 	int getRentpublic() {
-		if (this->getmortgageflag()==false) {
+		if (this->getmortgageflag() == false) {
 			if (this->doubleRent) {
 				return this->getRent() * 2;
 			}
