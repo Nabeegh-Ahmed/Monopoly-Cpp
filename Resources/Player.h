@@ -26,7 +26,7 @@ public:
 	/*void moveplayer(int diceroll, sf::RenderWindow& window);*/
 	sf::Vector2f getplayercoordinates();
 	~Player();
-	void setplayercoordinates(sf::Vector2f playercoordinates);
+	void updateplayercoordinates(sf::Vector2f playercoordinates);
 	void setcurrentcell(int currentlyoncell);
 	void addpropertyID(int ID);
 	bool operator[](int index);
@@ -35,15 +35,18 @@ public:
 	void setbankruptflag(bool flag);
 	bool getbankruptflag();
 	bool ownallutilities();
+	void setGOJFcardamount(int num);
 	void gainGOJFcard();
 	bool removeGOJFcard();
 	int getGOJFcard();
 	int getbalance();
 	int getcurrentlyoncell();
 	void spendturninjail();
+	void setbalance(int bal);
 	int getturnsinjail();
 	void setturnsinjail(int turns);
 	void depositcash(int amount);
+	void setplayercoordinates(sf::Vector2f playercoordinates);
 	bool withdrawcash(int amount);
 	void displayownedpropsconsole();
 	void updatelistofownedgroups();
@@ -116,8 +119,8 @@ void Player::drawplayer(sf::RenderWindow& window) {
 sf::Vector2f Player::getplayercoordinates() {
 	return playertopleftcoordinates;
 }
-void Player::setplayercoordinates(sf::Vector2f playercoordinates) {
-	this->playertopleftcoordinates = playercoordinates;
+void Player::updateplayercoordinates(sf::Vector2f playercoordinates) {
+	playertopleftcoordinates = playershape.getPosition();
 }
 int Player::getcurrentlyoncell() {
 	return oncellnumber;
@@ -358,5 +361,15 @@ void Player::setbankruptflag(bool flag) {
 }
 bool Player::getbankruptflag() {
 	return this->bankrupt;
+}
+void Player::setplayercoordinates(sf::Vector2f playercoordinates) {
+	this->playertopleftcoordinates = playercoordinates;
+	playershape.setPosition(playertopleftcoordinates);
+}
+void Player::setbalance(int bal) {
+	this->balance = bal;
+}
+void Player::setGOJFcardamount(int num) {
+	this->GOJFcards = num;
 }
 #endif

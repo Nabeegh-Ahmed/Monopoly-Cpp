@@ -85,7 +85,8 @@ public:
 	void showWinCard(sf::RenderWindow& window);
 	// Saving and Loading
 	void SaveToFile();
-	//-------------------------------------------
+	void loadfromfile();
+	//--------------------------------------
 	void addcells();
 	void rungame();
 	friend class Player;
@@ -157,6 +158,9 @@ void Board::rungame() {
 						}
 						if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
 							this->processlandedncell(window);
+						}
+						if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+							this->loadfromfile();
 						}
 						break;
 				}
@@ -947,7 +951,7 @@ void Board::moveplayerprocess(sf::RenderWindow& window, bool goforward) {
 		this->drawplayers(window);
 		window.display();
 	}
-	listofplayers[thisplayersturn][0].setplayercoordinates(tempplayershape.getPosition());
+	listofplayers[thisplayersturn][0].updateplayercoordinates(tempplayershape.getPosition());
 	this->spectatecurrentplayer(window);
 	listofplayers[thisplayersturn][0].setcurrentcell(currentcell);
 }
@@ -3110,17 +3114,21 @@ void Board::showWinCard(sf::RenderWindow& window) {
 	}
 }
 void Board::SaveToFile() {
+	int numberofupgradedproperties = 0;
+	int cellnumber = 0;
+	bool ispublic = false;
 	std::ofstream fout;
 	fout.open("savefiles/safe.txt");
 	fout << this->numberofplayers << std::endl;
+	fout << this->thisplayersturn << std::endl;
 	std::ofstream PlayerFile;
 	for (int i = 0; i < numberofplayers; i++) {
 		std::string playerPath = "SaveFiles/P" + std::to_string(i + 1) + ".txt";
 		PlayerFile.open(playerPath);
 		PlayerFile << i << std::endl;
-		PlayerFile << listofplayers[i]->getbalance() << std::endl;
 		if (listofplayers[i] != 0) {
 			PlayerFile << 1 << std::endl;
+			PlayerFile << listofplayers[i]->getbalance() << std::endl;
 			PlayerFile << listofplayers[i]->getcurrentlyoncell() << std::endl;
 			PlayerFile << listofplayers[i]->getGOJFcard() << std::endl;
 			PlayerFile << listofplayers[i]->getnumberofpropertiesowned() << std::endl;
@@ -3128,6 +3136,7 @@ void Board::SaveToFile() {
 				PlayerFile << listofplayers[i]->getPropertyIDlist()[j] << std::endl;
 			}
 			PlayerFile << listofplayers[i]->getplayercoordinates().x << " " << listofplayers[i]->getplayercoordinates().y << std::endl;
+			PlayerFile << listofplayers[i]->getturnsinjail() << std::endl;
 		} 
 		else {
 			PlayerFile << 0 << std::endl;
@@ -3136,8 +3145,99 @@ void Board::SaveToFile() {
 			PlayerFile << 0 << std::endl;
 			PlayerFile << 0 << std::endl;
 			PlayerFile << 0 << std::endl;
+			PlayerFile << 0 << std::endl;
 		}
 		PlayerFile.close();
+		fout.close();
 	}
+	fout.open("savefiles/propertydata.txt");
+	for (int i = 1; i <= 28; i++) {
+		ispublic = false;
+		cellnumber = convertpropIDtocellnumber(i);
+		fout << i << std::endl;
+		fout << static_cast<Property*>(listofcells[cellnumber])->getmortgageflag() << std::endl;
+		if (cellnumber == 5 || cellnumber == 15 || cellnumber == 25 || cellnumber == 35) {
+			ispublic = true;
+		}
+		if (cellnumber == 12 || cellnumber == 28 || cellnumber == 37 || cellnumber == 39) {
+			ispublic = true;
+		}
+		fout << ispublic << std::endl;
+		if (ispublic) {
+			fout << static_cast<PublicProperty*>(listofcells[cellnumber])->getDoubleRent() << std::endl;
+		}
+		else {
+			fout << static_cast<PrivateProperty*>(listofcells[cellnumber])->getnumberofhouses() << " ";
+			fout << static_cast<PrivateProperty*>(listofcells[cellnumber])->getnumberofshops() << " ";
+			fout << static_cast<PrivateProperty*>(listofcells[cellnumber])->getnumberofhotels() << std::endl;
+			fout << static_cast<PrivateProperty*>(listofcells[cellnumber])->getWifi() << " ";
+			fout << static_cast<PrivateProperty*>(listofcells[cellnumber])->getGas() << " ";
+			fout << static_cast<PrivateProperty*>(listofcells[cellnumber])->getElectricity() << std::endl;
+		}
+	}
+	fout.close();
+}
+void Board::loadfromfile() {
+	int numberofplayers = 0, numberofpropsowned=0, index=0;
+	int quantityholder = 0;
+	bool flagholder = 0;
+	int cellnumber = 0;
+	int propID = 0;
+	bool ispublic = false;
+	std::ifstream filereader;
+	filereader.open("savefiles/safe.txt");
+	filereader >> numberofplayers;
+	filereader >> thisplayersturn;
+	filereader.close();
+	for (int i = 0; i < numberofplayers; i++) {
+		std::string playerPath = "SaveFiles/P" + std::to_string(i + 1) + ".txt";
+		filereader.open(playerPath);
+		filereader >> index;
+		filereader >> flagholder;
+		if (flagholder != false) {
+			filereader >> quantityholder;
+			listofplayers[index][0].setbalance(quantityholder);
+			filereader >> quantityholder;
+			listofplayers[index][0].setcurrentcell(quantityholder);
+			filereader >> quantityholder;
+			listofplayers[index][0].setGOJFcardamount(quantityholder);
+			filereader >> numberofpropsowned;
+			for (int j = 0; j < numberofpropsowned; j++) {
+				filereader >> quantityholder;
+				listofplayers[index][0].addpropertyID(quantityholder);
+			}
+			int xcoord = 0, ycoord = 0;
+			filereader >> xcoord>>ycoord;
+			listofplayers[index][0].setplayercoordinates(sf::Vector2f(xcoord, ycoord));
+			filereader >> quantityholder;
+			listofplayers[index][0].setturnsinjail(quantityholder);
+		}
+		filereader.close();
+	}
+	filereader.open("savefiles/propertydata.txt");
+	for (int j = 1; j <= 28; j++) {
+		filereader >> propID>>flagholder>>ispublic;
+		cellnumber = convertpropIDtocellnumber(propID);
+		static_cast<Property*>(listofcells[cellnumber])->setmortgagedflag(flagholder);
+		if (ispublic) {
+			filereader >> flagholder;
+			static_cast<PublicProperty*>(listofcells[cellnumber])->setDoubleRent(flagholder);
+		}
+		else {
+			filereader >> quantityholder;
+			static_cast<PrivateProperty*>(listofcells[cellnumber])->sethouses(quantityholder);
+			filereader >> quantityholder;
+			static_cast<PrivateProperty*>(listofcells[cellnumber])->setshops(quantityholder);
+			filereader >> quantityholder;
+			static_cast<PrivateProperty*>(listofcells[cellnumber])->sethotels(quantityholder);
+			filereader >> flagholder;
+			static_cast<PrivateProperty*>(listofcells[cellnumber])->setWifi(flagholder);
+			filereader >> flagholder;
+			static_cast<PrivateProperty*>(listofcells[cellnumber])->setGas(flagholder);
+			filereader >> flagholder;
+			static_cast<PrivateProperty*>(listofcells[cellnumber])->setElectricity(flagholder);
+		}
+	}
+	filereader.close();
 }
 #endif
