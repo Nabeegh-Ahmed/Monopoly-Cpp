@@ -2848,14 +2848,14 @@ void Board::bankruptcyinitiated(sf::RenderWindow& window, int idtoowemoney, int 
 		int propidlist[28] = {};
 		int numberofpropstransferred = 0;
 		if (thisplayersturn != idtoowemoney) {
-			yesnopopup(window, "Transfering any liquid assets to owed Player " + std::to_string(idtoowemoney) + ", Received: " + std::to_string(this->listofplayers[thisplayersturn][0].getbalance()) + " PKR");
+			yesnopopup(window, "Transfering any liquid assets to owed Player " + std::to_string(idtoowemoney+1) + ", Received: " + std::to_string(this->listofplayers[thisplayersturn][0].getbalance()) + " PKR");
 			this->listofplayers[idtoowemoney][0].depositcash(this->listofplayers[thisplayersturn][0].getbalance());
 		}
 		else {
 			yesnopopup(window, "Transfering any liquid assets to Bank");
 		}
 		if (thisplayersturn != idtoowemoney) {
-			yesnopopup(window, "Transfering Properties to owed Player " + std::to_string(idtoowemoney));
+			yesnopopup(window, "Transfering Properties to owed Player " + std::to_string(idtoowemoney+1));
 		}
 		else {
 			yesnopopup(window, "Transfering Properties to Bank, available for purchase");
@@ -3211,6 +3211,10 @@ void Board::loadfromfile() {
 			listofplayers[index][0].setplayercoordinates(sf::Vector2f(xcoord, ycoord));
 			filereader >> quantityholder;
 			listofplayers[index][0].setturnsinjail(quantityholder);
+		}
+		else {
+			delete listofplayers[index];
+			listofplayers[index] = 0;
 		}
 		filereader.close();
 	}
