@@ -1,8 +1,26 @@
+-------Player Metadata---------
 Index in the lisofplayers array
-balance
 1 for not bankrupt and 0 for bankrupt
+balance
 currently on cell
 Get out of Jail cards
 number of properties owned
 n lines for ids of owned properties
-player coordinates
+player coordinates x y
+number of turns to be spent in jail
+
+
+------Property Metadata--------
+property ID
+mortgaged flag
+Ispublic flag, 1 for true, 0 for private prop
+If Ispublic followed by only:
+doublerent flag
+Else:
+number of houses number of shops number of hotels
+wifi flag gas flag electricity flag
+ 
+
+----------Safe----------------
+Number of players
+Thisplayersturn
