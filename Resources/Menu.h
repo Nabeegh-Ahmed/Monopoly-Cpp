@@ -23,6 +23,8 @@ class Menu {
 	sf::Texture startingCashTexture;
 	sf::RectangleShape PlayBtn;
 	sf::Texture PlayBtnTexture;
+	sf::RectangleShape LoadBtn;
+	sf::Texture LoadBtnTexture;
 public:
 	Menu() {
 		options = new sf::RectangleShape[4];
@@ -64,8 +66,15 @@ public:
 			money[i].setTexture(&moneyTexture[i]);
 			money[i].setSize(sf::Vector2f(100, 50));
 		}
+		//Original 550,750
+		LoadBtn.setPosition(500, 750);
+		LoadBtn.setSize(sf::Vector2f(200, 50));
+		LoadBtn.setOutlineColor(sf::Color::Black);
+		LoadBtn.setOutlineThickness(5);
+		LoadBtnTexture.loadFromFile("assets/Menu/loadGame.png");
+		LoadBtn.setTexture(&LoadBtnTexture);
 
-		PlayBtn.setPosition(550, 750);
+		PlayBtn.setPosition(550, 860);
 		PlayBtn.setSize(sf::Vector2f(100, 50));
 		PlayBtn.setOutlineColor(sf::Color::Black);
 		PlayBtn.setOutlineThickness(5);
@@ -74,7 +83,7 @@ public:
 
 	}
 
-	bool MenuPlay(userOptions& attributes, sf::Event event, sf::RenderWindow& window) {
+	bool MenuPlay(userOptions& attributes, sf::Event event, sf::RenderWindow& window, bool &loadflag) {
 		for (int i = 0; i < 4; i++) {
 			if (Engine.MouseClick(options[i], event, window)) {
 				attributes.amountOfPlayers = i + 2;
@@ -85,9 +94,15 @@ public:
 				attributes.startingMoney = (i+1)*500;
 			}
 		}
-		if (Engine.MouseClick(PlayBtn, event, window)) {
+		if (Engine.MouseClick(LoadBtn, event, window)) {
+			loadflag = true;
 			return true;
 		}
+		if (Engine.MouseClick(PlayBtn, event, window)) {
+			loadflag = false;
+			return true;
+		}
+
 		return false;
 	}
 
@@ -97,6 +112,7 @@ public:
 		window.draw(MonopolyLogo);
 		window.draw(nbrOfPlayers);
 		window.draw(startingCash);
+		window.draw(LoadBtn);
 		window.draw(PlayBtn);
 	}
 	~Menu() {
