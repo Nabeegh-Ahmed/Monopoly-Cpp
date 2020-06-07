@@ -40,6 +40,7 @@ private:
 	bool PlayStarted;
 	Menu menu;
 	userOptions userAttributes;
+	bool gameComplete;
 public:
 	Board();
 	~Board();
@@ -75,7 +76,7 @@ public:
 	void gotojail(sf::RenderWindow& window);
 	bool yesnopopup(sf::RenderWindow& window, std::string message);
 	void passedgo();
-	
+
 	// Auction and Buy thingies
 	void buyPropertyCard(int propertyID, sf::RenderWindow& window, int& celltoreturn, bool& ispublicprop, bool bought);
 	bool PurchaseProperty(sf::RenderWindow& window, int PropertyID, bool isPublicProp);
@@ -97,6 +98,7 @@ Board::Board() {
 	numberofplayers = 5;//Interface will decide number of players
 	addcells();
 	gamedice.setposition(550, -350);
+	gameComplete = false;
 }
 Board::~Board() {
 	for (int i = 0; i < 41; i++) {
@@ -117,14 +119,20 @@ void Board::rungame() {
 
 	while (window.isOpen())
 	{
+		if (gameComplete) {
+			window.close();
+		}
 		while (window.pollEvent(event))
 		{
 			if (!PlayStarted) {
-				PlayStarted = menu.MenuPlay(userAttributes, event, window,loadgame);
+				PlayStarted = menu.MenuPlay(userAttributes, event, window, loadgame);
 				if (PlayStarted) {
 					if (loadgame == false) {
 						this->numberofplayers = userAttributes.amountOfPlayers;
 						addplayers();
+						for (int i = 0; i < numberofplayers; i++) {
+							listofplayers[i]->depositcash(userAttributes.startingMoney);
+						}
 					}
 					else {
 						std::ifstream fout;
@@ -141,76 +149,78 @@ void Board::rungame() {
 				window.close();
 				break;
 				if (PlayStarted) {
-					case sf::Event::KeyPressed:
-						if (PlayStarted) {
-							if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-								if (!hasrolled) {
-									this->moveplayermechanicandgraphic(window);
-									hasrolled = true;
-								}
-							}
-							if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
-								if (hasrolled) {
-									this->endturn(window);
-									hasrolled = false;
-								}
-							}
-							if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
-								this->upgradesystem(window, false);
-							}
-							/*if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) {
-								SaveToFile();
-							}
-							if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-								screenview.zoom(0.9f);
-							}
-							if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-								screenview.zoom(1.1f);
-							}
-							if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
-								this->moveplayermechanicandgraphic(window);
-							}
-							if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
-								this->endturn(window);
-							}
-							if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
-								this->upgradesystem(window, false);
-							}
-							if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) {
-								this->gotojail(window);
-							}
-							if (sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
-								this->moveplayerprocess(window, true);
-							}
-							if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
-								this->processlandedncell(window);
-							}
-							if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-								this->loadfromfile();
-							}*/
+			case sf::Event::KeyPressed:
+				if (PlayStarted) {
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+						if (!hasrolled) {
+							this->moveplayermechanicandgraphic(window);
+							hasrolled = true;
 						}
-						break;
+					}
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+						if (hasrolled) {
+							this->endturn(window);
+							hasrolled = false;
+						}
+					}
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
+						this->upgradesystem(window, false);
+					}
+					/*if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) {
+						SaveToFile();
+					}
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+						screenview.zoom(0.9f);
+					}
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+						screenview.zoom(1.1f);
+					}
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
+						this->moveplayermechanicandgraphic(window);
+					}
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+						this->endturn(window);
+					}
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
+						this->upgradesystem(window, false);
+					}
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) {
+						this->gotojail(window);
+					}
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
+						this->moveplayerprocess(window, true);
+					}
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
+						this->processlandedncell(window);
+					}
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+						this->loadfromfile();
+					}*/
+				}
+				break;
 				}
 			}
 
-			
+
 			if (PlayStarted) {
 				window.setView(screenview);
-				this->spectatecurrentplayer(window);
-				this->doublerentforstations();
-				this->doublerentforutilities();
-				for (int i = 0; i < numberofplayers; i++) {
-					if (this->listofplayers[i] != 0) {
-						listofplayers[i][0].updatelistofownedgroups();
-					}
-				}
-				updatehighestnumofupgrades();
 				if (haveWin()) {
 					showWinCard(window);
 				}
+				else {
+					this->spectatecurrentplayer(window);
+					this->doublerentforstations();
+					this->doublerentforutilities();
+					for (int i = 0; i < numberofplayers; i++) {
+						if (this->listofplayers[i] != 0) {
+							listofplayers[i][0].updatelistofownedgroups();
+						}
+					}
+					updatehighestnumofupgrades();
+				}
 			}
 
-			
+
 
 			window.clear(sf::Color::White);
 			if (PlayStarted) {
@@ -729,7 +739,7 @@ bool Board::PurchaseProperty(sf::RenderWindow& window, int propertyID, bool ispu
 	sf::Vector2i mousecoords(0, 0);
 	bool exitflag = false;
 	bool playerBought = false;
-	
+
 	int sequenceofevents = 1;
 	int maincellnumber = -1;
 	int propertyIDselected = -1;
@@ -789,7 +799,7 @@ void Board::Auction(sf::RenderWindow& window, int propertyID) {
 
 	float AuctionCardWidth = currentPlayers * 200;
 
-	
+
 
 	sf::RectangleShape AuctionCard;
 	AuctionCard.setPosition(250, 222);
@@ -902,11 +912,11 @@ void Board::Auction(sf::RenderWindow& window, int propertyID) {
 			window.draw(Fold[i]);
 			window.draw(Call[i]);
 			window.draw(CurrentBid[i]);
-			
+
 			PlayerNumber.setString(PlayerNumber.getString() + std::to_string(i + 1));
 			PlayerNumber.setPosition(300 + 200 * i, 300);
 			window.draw(PlayerNumber);
-			PlayerNumber.setString("Player ");	
+			PlayerNumber.setString("Player ");
 		}
 
 		window.display();
@@ -1130,7 +1140,7 @@ void Board::upgradesystem(sf::RenderWindow& window, bool bankruptcyenabled) {
 								window.display();
 							}
 							else {
-								
+
 							}
 						}
 						if (bankruptcyenabled) {
@@ -1184,7 +1194,7 @@ void Board::upgradesystem(sf::RenderWindow& window, bool bankruptcyenabled) {
 									selectionshape.setPosition(450, 170);
 									window.draw(selectionshape);
 									playertext.setString("Select a player");
-									playertext.setPosition(450+i*40, 170);
+									playertext.setPosition(450 + i * 40, 170);
 									window.draw(playertext);
 								}
 							}
@@ -1235,7 +1245,7 @@ void Board::upgradesystem(sf::RenderWindow& window, bool bankruptcyenabled) {
 						break;
 					}
 				}
-				if (sf::Mouse::isButtonPressed(sf::Mouse::Right) ||gobackflag==true) {
+				if (sf::Mouse::isButtonPressed(sf::Mouse::Right) || gobackflag == true) {
 					gobackflag = false;
 					sequenceofevents--;
 					switch (sequenceofevents) {
@@ -2153,7 +2163,7 @@ int  Board::whichoptionselectedcard(sf::Vector2i coordinates) {
 	}
 	topleftx = 450;
 	toplefty = 110;
-	if ((coordinates.x > topleftx && coordinates.x < topleftx + 200) && (coordinates.y > toplefty && coordinates.y < toplefty + 40)) {
+	if ((coordinates.x > topleftx&& coordinates.x < topleftx + 200) && (coordinates.y > toplefty&& coordinates.y < toplefty + 40)) {
 		return 11;
 	}
 	return -1;
@@ -3037,14 +3047,14 @@ void Board::bankruptcyinitiated(sf::RenderWindow& window, int idtoowemoney, int 
 		int propidlist[28] = {};
 		int numberofpropstransferred = 0;
 		if (thisplayersturn != idtoowemoney) {
-			yesnopopup(window, "Transfering any liquid assets to owed Player " + std::to_string(idtoowemoney+1) + ", Received: " + std::to_string(this->listofplayers[thisplayersturn][0].getbalance()) + " PKR");
+			yesnopopup(window, "Transfering any liquid assets to owed Player " + std::to_string(idtoowemoney + 1) + ", Received: " + std::to_string(this->listofplayers[thisplayersturn][0].getbalance()) + " PKR");
 			this->listofplayers[idtoowemoney][0].depositcash(this->listofplayers[thisplayersturn][0].getbalance());
 		}
 		else {
 			yesnopopup(window, "Transfering any liquid assets to Bank");
 		}
 		if (thisplayersturn != idtoowemoney) {
-			yesnopopup(window, "Transfering Properties to owed Player " + std::to_string(idtoowemoney+1));
+			yesnopopup(window, "Transfering Properties to owed Player " + std::to_string(idtoowemoney + 1));
 		}
 		else {
 			yesnopopup(window, "Transfering Properties to Bank, available for purchase");
@@ -3113,7 +3123,7 @@ void Board::bankruptcyinitiated(sf::RenderWindow& window, int idtoowemoney, int 
 		}
 		if (idtoowemoney == thisplayersturn) {
 			for (int i = 0; i < numberofpropstransferred; i++) {
-				Auction(window, listofplayers[thisplayersturn]->getcurrentlyoncell() - 1);				
+				Auction(window, listofplayers[thisplayersturn]->getcurrentlyoncell() - 1);
 			}
 		}
 		delete this->listofplayers[thisplayersturn];
@@ -3250,9 +3260,11 @@ void Board::showWinCard(sf::RenderWindow& window) {
 	WinCard.setPosition(600, 500);
 	sf::RectangleShape WinnerFace;
 
+	screenview.setCenter(900, 900);
+
 	sf::Font font;
 	font.loadFromFile("assets/TimesNew.ttf");
-	
+
 	sf::Text Cash;
 	Cash.setFont(font);
 	Cash.setCharacterSize(34);
@@ -3279,7 +3291,7 @@ void Board::showWinCard(sf::RenderWindow& window) {
 	while (!exitFlag) {
 		mousecoords.x = sf::Mouse::getPosition(window).x;
 		mousecoords.y = sf::Mouse::getPosition(window).y;
-		
+
 		while (window.pollEvent(event)) {
 			switch (event.type) {
 			case sf::Event::MouseButtonPressed:
@@ -3288,14 +3300,16 @@ void Board::showWinCard(sf::RenderWindow& window) {
 						mousecoords.x <= 730 &&
 						mousecoords.y >= 760 &&
 						mousecoords.y <= 890) {
-						window.close();
+						gameComplete = true;
+						exitFlag = true;
 					}
 				}
 				break;
 			}
 		}
 
-		
+
+		window.setView(screenview);
 		window.draw(WinCard);
 		window.draw(WinnerFace);
 		window.draw(Cash);
@@ -3326,7 +3340,7 @@ void Board::SaveToFile() {
 			}
 			PlayerFile << listofplayers[i]->getplayercoordinates().x << " " << listofplayers[i]->getplayercoordinates().y << std::endl;
 			PlayerFile << listofplayers[i]->getturnsinjail() << std::endl;
-		} 
+		}
 		else {
 			PlayerFile << 0 << std::endl;
 			PlayerFile << 0 << std::endl;
@@ -3367,7 +3381,7 @@ void Board::SaveToFile() {
 	fout.close();
 }
 void Board::loadfromfile() {
-	int numberofpropsowned=0, index=0;
+	int numberofpropsowned = 0, index = 0;
 	int quantityholder = 0;
 	bool flagholder = 0;
 	int cellnumber = 0;
@@ -3396,7 +3410,7 @@ void Board::loadfromfile() {
 				listofplayers[index][0].addpropertyID(quantityholder);
 			}
 			int xcoord = 0, ycoord = 0;
-			filereader >> xcoord>>ycoord;
+			filereader >> xcoord >> ycoord;
 			listofplayers[index][0].setplayercoordinates(sf::Vector2f(xcoord, ycoord));
 			filereader >> quantityholder;
 			listofplayers[index][0].setturnsinjail(quantityholder);
@@ -3409,7 +3423,7 @@ void Board::loadfromfile() {
 	}
 	filereader.open("savefiles/propertydata.txt");
 	for (int j = 1; j <= 28; j++) {
-		filereader >> propID>>flagholder>>ispublic;
+		filereader >> propID >> flagholder >> ispublic;
 		cellnumber = convertpropIDtocellnumber(propID);
 		static_cast<Property*>(listofcells[cellnumber])->setmortgagedflag(flagholder);
 		if (ispublic) {
