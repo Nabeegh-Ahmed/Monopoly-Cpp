@@ -40,7 +40,6 @@ private:
 	bool PlayStarted;
 	Menu menu;
 	userOptions userAttributes;
-	bool gameComplete;
 public:
 	Board();
 	~Board();
@@ -98,7 +97,6 @@ Board::Board() {
 	numberofplayers = 5;//Interface will decide number of players
 	addcells();
 	gamedice.setposition(550, -350);
-	gameComplete = false;
 }
 Board::~Board() {
 	for (int i = 0; i < 41; i++) {
@@ -109,27 +107,32 @@ Board::~Board() {
 void Board::rungame() {
 	sf::RenderWindow window(sf::VideoMode(1280, 1024), "Monopoly", sf::Style::Close);
 	sf::Image icon;
+	bool hasrolled = false;
 	icon.loadFromFile("assets/textures/inner_board.png");
 	window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
 	screenview.setSize(sf::Vector2f(1280, 1024));
 	screenview.zoom(1.025f);
-
+	bool loadgame = false;
 	sf::Event event;
 
 	while (window.isOpen())
 	{
-		if (gameComplete) {
-			window.close();
-		}
 		while (window.pollEvent(event))
 		{
 			if (!PlayStarted) {
-				PlayStarted = menu.MenuPlay(userAttributes, event, window);
+				PlayStarted = menu.MenuPlay(userAttributes, event, window,loadgame);
 				if (PlayStarted) {
-					this->numberofplayers = userAttributes.amountOfPlayers;
-					addplayers();
-					for (int i = 0; i < numberofplayers; i++) {
-						listofplayers[i]->setbalance(userAttributes.startingMoney);
+					if (loadgame == false) {
+						this->numberofplayers = userAttributes.amountOfPlayers;
+						addplayers();
+					}
+					else {
+						std::ifstream fout;
+						fout.open("savefiles/safe.txt");
+						fout >> numberofplayers;
+						fout.close();
+						addplayers();
+						this->loadfromfile();
 					}
 				}
 			}
@@ -138,37 +141,53 @@ void Board::rungame() {
 				window.close();
 				break;
 				if (PlayStarted) {
-					
 					case sf::Event::KeyPressed:
-						if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) {
-							SaveToFile();
-						}
-						if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-							screenview.zoom(0.9f);
-						}
-						if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-							screenview.zoom(1.1f);
-						}
-						if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
-							this->moveplayermechanicandgraphic(window);
-						}
-						if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
-							this->endturn(window);
-						}
-						if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
-							this->upgradesystem(window,false);
-						}
-						if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) {
-							this->gotojail(window);
-						}
-						if (sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
-							this->moveplayerprocess(window, true);
-						}
-						if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
-							this->processlandedncell(window);
-						}
-						if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-							this->loadfromfile();
+						if (PlayStarted) {
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+								if (!hasrolled) {
+									this->moveplayermechanicandgraphic(window);
+									hasrolled = true;
+								}
+							}
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+								if (hasrolled) {
+									this->endturn(window);
+									hasrolled = false;
+								}
+							}
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
+								this->upgradesystem(window, false);
+							}
+							/*if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) {
+								SaveToFile();
+							}
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+								screenview.zoom(0.9f);
+							}
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+								screenview.zoom(1.1f);
+							}
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
+								this->moveplayermechanicandgraphic(window);
+							}
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+								this->endturn(window);
+							}
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
+								this->upgradesystem(window, false);
+							}
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) {
+								this->gotojail(window);
+							}
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
+								this->moveplayerprocess(window, true);
+							}
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
+								this->processlandedncell(window);
+							}
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+								this->loadfromfile();
+							}*/
 						}
 						break;
 				}
@@ -177,18 +196,17 @@ void Board::rungame() {
 			
 			if (PlayStarted) {
 				window.setView(screenview);
+				this->spectatecurrentplayer(window);
+				this->doublerentforstations();
+				this->doublerentforutilities();
+				for (int i = 0; i < numberofplayers; i++) {
+					if (this->listofplayers[i] != 0) {
+						listofplayers[i][0].updatelistofownedgroups();
+					}
+				}
+				updatehighestnumofupgrades();
 				if (haveWin()) {
 					showWinCard(window);
-				} else {
-					this->spectatecurrentplayer(window);
-					this->doublerentforstations();
-					this->doublerentforutilities();
-					for (int i = 0; i < numberofplayers; i++) {
-						if (this->listofplayers[i] != 0) {
-							listofplayers[i][0].updatelistofownedgroups();
-						}
-					}
-					updatehighestnumofupgrades();
 				}
 			}
 
@@ -993,6 +1011,7 @@ void Board::moveplayermechanicandgraphic(sf::RenderWindow& window) {
 				passedgo();
 			}
 		}
+		this->processlandedncell(window);
 	}
 	else {
 		this->listofplayers[thisplayersturn][0].spendturninjail();
@@ -3231,11 +3250,9 @@ void Board::showWinCard(sf::RenderWindow& window) {
 	WinCard.setPosition(600, 500);
 	sf::RectangleShape WinnerFace;
 
-	screenview.setCenter(900, 900);
-	
 	sf::Font font;
 	font.loadFromFile("assets/TimesNew.ttf");
-
+	
 	sf::Text Cash;
 	Cash.setFont(font);
 	Cash.setCharacterSize(34);
@@ -3262,7 +3279,7 @@ void Board::showWinCard(sf::RenderWindow& window) {
 	while (!exitFlag) {
 		mousecoords.x = sf::Mouse::getPosition(window).x;
 		mousecoords.y = sf::Mouse::getPosition(window).y;
-
+		
 		while (window.pollEvent(event)) {
 			switch (event.type) {
 			case sf::Event::MouseButtonPressed:
@@ -3271,8 +3288,7 @@ void Board::showWinCard(sf::RenderWindow& window) {
 						mousecoords.x <= 730 &&
 						mousecoords.y >= 760 &&
 						mousecoords.y <= 890) {
-						gameComplete = true;
-						exitFlag = true;
+						window.close();
 					}
 				}
 				break;
@@ -3280,7 +3296,6 @@ void Board::showWinCard(sf::RenderWindow& window) {
 		}
 
 		
-		window.setView(screenview);
 		window.draw(WinCard);
 		window.draw(WinnerFace);
 		window.draw(Cash);
