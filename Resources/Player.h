@@ -56,7 +56,7 @@ public:
 	int getPlayerID();
 	int getnumberofpropertiesowned();
 	int* getPropertyIDlist();
-	
+
 };
 
 Player::Player() {
