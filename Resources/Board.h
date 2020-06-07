@@ -40,6 +40,7 @@ private:
 	bool PlayStarted;
 	Menu menu;
 	userOptions userAttributes;
+	bool gameComplete;
 public:
 	Board();
 	~Board();
@@ -97,6 +98,7 @@ Board::Board() {
 	numberofplayers = 5;//Interface will decide number of players
 	addcells();
 	gamedice.setposition(550, -350);
+	gameComplete = false;
 }
 Board::~Board() {
 	for (int i = 0; i < 41; i++) {
@@ -116,6 +118,9 @@ void Board::rungame() {
 
 	while (window.isOpen())
 	{
+		if (gameComplete) {
+			window.close();
+		}
 		while (window.pollEvent(event))
 		{
 			if (!PlayStarted) {
@@ -123,6 +128,9 @@ void Board::rungame() {
 				if (PlayStarted) {
 					this->numberofplayers = userAttributes.amountOfPlayers;
 					addplayers();
+					for (int i = 0; i < numberofplayers; i++) {
+						listofplayers[i]->setbalance(userAttributes.startingMoney);
+					}
 				}
 			}
 			switch (event.type) {
@@ -169,17 +177,18 @@ void Board::rungame() {
 			
 			if (PlayStarted) {
 				window.setView(screenview);
-				this->spectatecurrentplayer(window);
-				this->doublerentforstations();
-				this->doublerentforutilities();
-				for (int i = 0; i < numberofplayers; i++) {
-					if (this->listofplayers[i] != 0) {
-						listofplayers[i][0].updatelistofownedgroups();
-					}
-				}
-				updatehighestnumofupgrades();
 				if (haveWin()) {
 					showWinCard(window);
+				} else {
+					this->spectatecurrentplayer(window);
+					this->doublerentforstations();
+					this->doublerentforutilities();
+					for (int i = 0; i < numberofplayers; i++) {
+						if (this->listofplayers[i] != 0) {
+							listofplayers[i][0].updatelistofownedgroups();
+						}
+					}
+					updatehighestnumofupgrades();
 				}
 			}
 
@@ -3222,9 +3231,11 @@ void Board::showWinCard(sf::RenderWindow& window) {
 	WinCard.setPosition(600, 500);
 	sf::RectangleShape WinnerFace;
 
+	screenview.setCenter(900, 900);
+	
 	sf::Font font;
 	font.loadFromFile("assets/TimesNew.ttf");
-	
+
 	sf::Text Cash;
 	Cash.setFont(font);
 	Cash.setCharacterSize(34);
@@ -3251,7 +3262,7 @@ void Board::showWinCard(sf::RenderWindow& window) {
 	while (!exitFlag) {
 		mousecoords.x = sf::Mouse::getPosition(window).x;
 		mousecoords.y = sf::Mouse::getPosition(window).y;
-		
+
 		while (window.pollEvent(event)) {
 			switch (event.type) {
 			case sf::Event::MouseButtonPressed:
@@ -3260,7 +3271,8 @@ void Board::showWinCard(sf::RenderWindow& window) {
 						mousecoords.x <= 730 &&
 						mousecoords.y >= 760 &&
 						mousecoords.y <= 890) {
-						window.close();
+						gameComplete = true;
+						exitFlag = true;
 					}
 				}
 				break;
@@ -3268,6 +3280,7 @@ void Board::showWinCard(sf::RenderWindow& window) {
 		}
 
 		
+		window.setView(screenview);
 		window.draw(WinCard);
 		window.draw(WinnerFace);
 		window.draw(Cash);
