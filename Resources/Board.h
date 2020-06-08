@@ -1065,6 +1065,7 @@ void Board::endturn(sf::RenderWindow& window) {
 			this->thisplayersturn = 0;
 		}
 	}
+	SaveToFile();
 }
 void Board::upgradesystem(sf::RenderWindow& window, bool bankruptcyenabled) {
 	sf::Event event;
