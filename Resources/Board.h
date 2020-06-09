@@ -116,7 +116,13 @@ void Board::rungame() {
 	screenview.zoom(1.025f);
 	bool loadgame = false;
 	sf::Event event;
-
+	
+	sf::Music backgroundMusic;
+	backgroundMusic.openFromFile("audio/monopoly.wav");
+	backgroundMusic.setVolume(70);
+	backgroundMusic.play();
+	backgroundMusic.setLoop(true);
+	
 	while (window.isOpen())
 	{
 		if (gameComplete) {
