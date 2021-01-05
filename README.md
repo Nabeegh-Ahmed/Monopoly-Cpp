@@ -11,3 +11,6 @@
   <li>Clone this repo into project which has SFML setted up.</li>
   <li>Compile Main.cpp file and run.</li>
 </ul>
+
+<h2>Credits</h2>
+The project was prepared by Ubaid Taili Malik 2020.
