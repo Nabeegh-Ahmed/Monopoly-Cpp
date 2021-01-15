@@ -13,4 +13,5 @@
 </ul>
 
 <h2>Credits</h2>
-The project was prepared by Ubaid Taili Malik 2020.
+Muhammad Qureshi
+Nabeegh Ahmed
